@@ -7,9 +7,10 @@ import {
   deleteDoc, 
   query, 
   where, 
-  orderBy, 
+  orderBy,
   limit,
-  Timestamp 
+  Timestamp,
+  deleteField
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Player, Match } from '../types';
@@ -86,12 +87,16 @@ export const deletePlayer = async (playerId: string): Promise<void> => {
 // Matches
 export const addMatch = async (match: Match, userId: string): Promise<string> => {
   try {
-    const docRef = await addDoc(collection(db, MATCHES_COLLECTION), {
+    const matchData = {
       ...match,
       userId,
-      createdBy: userId,
-      date: Timestamp.fromDate(match.date)
-    });
+      createdBy: userId, // explicitly set createdBy to the user creating the match
+      date: Timestamp.fromDate(match.date), // Convert Date to Firestore Timestamp
+      // Ensure isPublic is explicitly set, defaulting to false if not provided
+      isPublic: typeof match.isPublic === 'boolean' ? match.isPublic : false,
+    };
+    console.log('Saving match to Firestore with data:', JSON.stringify(matchData, null, 2));
+    const docRef = await addDoc(collection(db, MATCHES_COLLECTION), matchData);
     return docRef.id;
   } catch (error) {
     console.error('Error adding match:', error);
@@ -143,14 +148,37 @@ export const getPublicMatches = async (limitCount: number = 50): Promise<Match[]
 export const updateMatch = async (matchId: string, updates: Partial<Match>): Promise<void> => {
   try {
     const matchRef = doc(db, MATCHES_COLLECTION, matchId);
-    const updateData = { ...updates };
-    
+    // Create a new object for Firestore data to avoid mutating the original 'updates' object
+    const updateDataFirestore: any = { ...updates };
+
     // Convert Date to Timestamp if present
-    if (updateData.date) {
-      updateData.date = Timestamp.fromDate(updateData.date) as any;
+    if (updates.date && updates.date instanceof Date) {
+      updateDataFirestore.date = Timestamp.fromDate(updates.date);
+    } else if (updates.date) {
+      // If it's not a Date object but is present, ensure it's a Timestamp or handle error
+      // For simplicity, assuming valid Timestamp if not a Date. Production code might need more robust check.
+      updateDataFirestore.date = updates.date;
     }
     
-    await updateDoc(matchRef, updateData);
+    // Handle winnerId specifically
+    // If winnerId is explicitly undefined in updates, use deleteField to remove it from Firestore.
+    // Otherwise, just include its value (it might be a string, or not present in the updates object).
+    if (updates.hasOwnProperty('winnerId')) {
+      if (updates.winnerId === undefined) {
+        updateDataFirestore.winnerId = deleteField();
+      } else {
+        updateDataFirestore.winnerId = updates.winnerId;
+      }
+    }
+
+    // If teams are being updated, ensure they are in a format Firestore can handle (e.g. array of objects)
+    // This part assumes 'teams' structure is already correct as per 'Match' type
+    if (updates.teams) {
+        updateDataFirestore.teams = updates.teams;
+    }
+
+    console.log('Updating match with Firestore data:', JSON.stringify(updateDataFirestore));
+    await updateDoc(matchRef, updateDataFirestore);
   } catch (error) {
     console.error('Error updating match:', error);
     throw error;

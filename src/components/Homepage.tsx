@@ -40,6 +40,11 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
   const loadPublicMatches = async () => {
     try {
       const matches = await getPublicMatches();
+      console.log('Fetched public matches raw:', JSON.stringify(matches, null, 2)); // Added log
+      console.log('Number of public matches fetched:', matches.length); // Added log
+      if (matches.length > 0) { // Added log
+        console.log('First public match isPublic value:', matches[0].isPublic);
+      }
       setPublicMatches(matches);
     } catch (error) {
       console.error('Error loading public matches:', error);
