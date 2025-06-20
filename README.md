@@ -1,6 +1,7 @@
-# SquadMatch  Squad Management App ✨
+# Match Squad  Squad Management App ✨
 
-SquadMatch is a dynamic application designed for creating, managing, and balancing teams for various games and activities. It helps organizers and players form equitable teams based on skill levels and tracks match outcomes.
+Match Squad is a dynamic application designed for creating, managing, and balancing teams for various games and activities. It helps organizers and players form equitable teams based on skill levels and tracks match outcomes.
+
 
 ## 🌟 Features
 
@@ -49,7 +50,7 @@ SquadMatch is a dynamic application designed for creating, managing, and balanci
 1.  **Clone the repository:**
     ```bash
     git clone <your-repository-url>
-    cd squadmatch-app
+    cd matchsquad-app
     ```
 
 2.  **Install dependencies:**
@@ -109,4 +110,5 @@ These `VITE_FIREBASE_` secrets are used during the `npm run build` step to embed
 
 ---
 
-Enjoy managing your squads with SquadMatch! 🎉
+
+Enjoy managing your squads with Match Squad! 🎉

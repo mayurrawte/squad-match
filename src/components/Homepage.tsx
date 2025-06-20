@@ -74,7 +74,7 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
             </motion.div>
             
             <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              SquadMatch
+              Match Squad
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               Create balanced teams, track matches, and discover amazing games from the community
