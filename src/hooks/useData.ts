@@ -1,0 +1,221 @@
+import { useState, useEffect } from 'react';
+import { Player, Match } from '../types';
+import { localStorage_storage } from '../lib/storage';
+import * as firestore from '../lib/firestore';
+
+export const useData = (userId?: string) => {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, [userId]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      if (userId) {
+        // Load from Firestore
+        const [firestorePlayers, firestoreMatches] = await Promise.all([
+          firestore.getPlayers(userId),
+          firestore.getMatches(userId)
+        ]);
+        setPlayers(firestorePlayers);
+        setMatches(firestoreMatches);
+      } else {
+        // Load from localStorage
+        setPlayers(localStorage_storage.getPlayers());
+        setMatches(localStorage_storage.getMatches());
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // Fallback to localStorage on error
+      setPlayers(localStorage_storage.getPlayers());
+      setMatches(localStorage_storage.getMatches());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveData = async (newPlayers: Player[], newMatches: Match[]) => {
+    try {
+      if (userId) {
+        // Data is saved individually through Firestore functions
+        // This function is mainly for localStorage fallback
+      } else {
+        localStorage_storage.savePlayers(newPlayers);
+        localStorage_storage.saveMatches(newMatches);
+      }
+    } catch (error) {
+      console.error('Error saving data:', error);
+      // Fallback to localStorage
+      localStorage_storage.savePlayers(newPlayers);
+      localStorage_storage.saveMatches(newMatches);
+    }
+  };
+
+  const addPlayer = async (player: Player) => {
+    try {
+      if (userId) {
+        const firestoreId = await firestore.addPlayer(player, userId);
+        const newPlayer = { ...player, id: firestoreId };
+        setPlayers(prev => [newPlayer, ...prev]);
+      } else {
+        const newPlayers = [player, ...players];
+        setPlayers(newPlayers);
+        await saveData(newPlayers, matches);
+      }
+    } catch (error) {
+      console.error('Error adding player:', error);
+      // Fallback to localStorage
+      const newPlayers = [player, ...players];
+      setPlayers(newPlayers);
+      localStorage_storage.savePlayers(newPlayers);
+    }
+  };
+
+  const updatePlayer = async (playerId: string, updates: Partial<Player>) => {
+    try {
+      if (userId) {
+        await firestore.updatePlayer(playerId, updates);
+      }
+      
+      const newPlayers = players.map(p => 
+        p.id === playerId ? { ...p, ...updates } : p
+      );
+      setPlayers(newPlayers);
+      
+      if (!userId) {
+        await saveData(newPlayers, matches);
+      }
+    } catch (error) {
+      console.error('Error updating player:', error);
+      // Still update locally for better UX
+      const newPlayers = players.map(p => 
+        p.id === playerId ? { ...p, ...updates } : p
+      );
+      setPlayers(newPlayers);
+      localStorage_storage.savePlayers(newPlayers);
+    }
+  };
+
+  const deletePlayer = async (playerId: string) => {
+    try {
+      if (userId) {
+        await firestore.deletePlayer(playerId);
+      }
+      
+      const newPlayers = players.filter(p => p.id !== playerId);
+      setPlayers(newPlayers);
+      
+      if (!userId) {
+        await saveData(newPlayers, matches);
+      }
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      // Still delete locally for better UX
+      const newPlayers = players.filter(p => p.id !== playerId);
+      setPlayers(newPlayers);
+      localStorage_storage.savePlayers(newPlayers);
+    }
+  };
+
+  const addMatch = async (match: Match) => {
+    try {
+      if (userId) {
+        const firestoreId = await firestore.addMatch(match, userId);
+        const newMatch = { ...match, id: firestoreId };
+        setMatches(prev => [newMatch, ...prev]);
+        
+        // Update player stats
+        await updatePlayerStats(match);
+      } else {
+        const newMatches = [match, ...matches];
+        setMatches(newMatches);
+        
+        // Update player stats
+        await updatePlayerStats(match);
+        
+        // Save to localStorage
+        const updatedPlayers = await getUpdatedPlayersAfterMatch(match);
+        await saveData(updatedPlayers, newMatches);
+      }
+    } catch (error) {
+      console.error('Error adding match:', error);
+      // Fallback to localStorage
+      const newMatches = [match, ...matches];
+      setMatches(newMatches);
+      localStorage_storage.saveMatches(newMatches);
+    }
+  };
+
+  const updatePlayerStats = async (match: Match) => {
+    if (!match.winnerId) return;
+
+    const winningTeam = match.teams.find(t => t.id === match.winnerId);
+    if (!winningTeam) return;
+
+    const updatedPlayers = players.map(player => {
+      const isInMatch = match.teams.some(team => 
+        team.players.some(p => p.id === player.id)
+      );
+      const isWinner = winningTeam.players.some(p => p.id === player.id);
+      
+      if (isInMatch) {
+        const newStats = {
+          ...player,
+          matchesPlayed: player.matchesPlayed + 1,
+          wins: isWinner ? player.wins + 1 : player.wins,
+        };
+        
+        // Update in Firestore if user is logged in
+        if (userId) {
+          firestore.updatePlayer(player.id, {
+            matchesPlayed: newStats.matchesPlayed,
+            wins: newStats.wins
+          }).catch(console.error);
+        }
+        
+        return newStats;
+      }
+      return player;
+    });
+    
+    setPlayers(updatedPlayers);
+  };
+
+  const getUpdatedPlayersAfterMatch = async (match: Match): Promise<Player[]> => {
+    if (!match.winnerId) return players;
+
+    const winningTeam = match.teams.find(t => t.id === match.winnerId);
+    if (!winningTeam) return players;
+
+    return players.map(player => {
+      const isInMatch = match.teams.some(team => 
+        team.players.some(p => p.id === player.id)
+      );
+      const isWinner = winningTeam.players.some(p => p.id === player.id);
+      
+      if (isInMatch) {
+        return {
+          ...player,
+          matchesPlayed: player.matchesPlayed + 1,
+          wins: isWinner ? player.wins + 1 : player.wins,
+        };
+      }
+      return player;
+    });
+  };
+
+  return {
+    players,
+    matches,
+    loading,
+    addPlayer,
+    updatePlayer,
+    deletePlayer,
+    addMatch,
+    refresh: loadData,
+  };
+};
