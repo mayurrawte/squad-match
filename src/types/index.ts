@@ -24,6 +24,16 @@ export interface Match {
   date: Date;
   isPublic: boolean;
   createdBy?: string;
+  matchType?: MatchType;
+}
+
+export enum MatchType {
+  Football = "football",
+  Volleyball = "volleyball",
+  Basketball = "basketball",
+  Tennis = "tennis",
+  Badminton = "badminton",
+  Other = "other",
 }
 
 export interface User {
