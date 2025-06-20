@@ -51,8 +51,19 @@ function App() {
   const handleUpdateMatch = async (matchId: string, winnerId?: string) => {
     try {
       if (user) {
+        console.log(`Attempting to update match: ${matchId} with winnerId: ${winnerId}`); // Logging
         await updateMatchInFirestore(matchId, { winnerId });
         await refresh(); // Refresh data to get updated match
+
+        // Find and log the updated match from the local state
+        const updatedMatch = matches.find(m => m.id === matchId);
+        console.log('Match state after refresh (local matches array):', updatedMatch);
+        if (updatedMatch) {
+          console.log(`Updated match ${matchId} has winnerId: ${updatedMatch.winnerId}`);
+        } else {
+          console.log(`Match ${matchId} not found in local state after refresh.`);
+        }
+
         toast.success('Match result updated successfully!');
       } else {
         // Handle localStorage update if needed
@@ -61,6 +72,26 @@ function App() {
     } catch (error) {
       console.error('Error updating match:', error);
       toast.error('Failed to update match result');
+    }
+  };
+
+  // Step 2.1: Define handleMatchTeamsChange
+  const handleMatchTeamsChange = async (matchId: string, newTeams: Team[]) => {
+    try {
+      if (user) {
+        // Step 2.2: Call updateMatchInFirestore
+        await updateMatchInFirestore(matchId, { teams: newTeams });
+        // Step 2.3: Call refresh
+        await refresh();
+        // Step 2.4: Add success toast
+        toast.success('Match teams updated successfully!');
+      } else {
+        toast.error('Please sign in to update match teams.');
+      }
+    } catch (error) {
+      console.error('Error updating match teams:', error);
+      // Step 2.4: Add failure toast
+      toast.error('Failed to update match teams.');
     }
   };
 
@@ -208,9 +239,10 @@ function App() {
                     .map((match) => (
                       <MatchCard 
                         key={match.id} 
-                        match={match} 
+                        match={match}
                         onUpdateMatch={handleUpdateMatch}
                         showUpdateButton={true}
+                        onUpdateMatchTeams={handleMatchTeamsChange} // Step 2.5: Pass function to MatchCard
                       />
                     ))}
                 </AnimatePresence>
