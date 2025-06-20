@@ -1,0 +1,61 @@
+# .github/workflows/deploy-netlify.yml
+
+name: Deploy to Netlify 🚀
+
+on:
+  push:
+    branches:
+      - main # Or your default/deployment branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code 🛎️
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ⚙️
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Specify your Node.js version
+          cache: 'npm'
+
+      - name: Install dependencies 📦
+        run: npm ci # 'ci' is generally faster and more reliable for CI environments
+
+      - name: Build application 🛠️
+        run: npm run build
+        env: # Pass Firebase environment variables to the build process
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+      - name: Deploy to Netlify ☁️
+        uses: nwtgck/actions-netlify@v2.0 # Using a community action, ensure it's trusted or use official Netlify CLI
+        with:
+          publish-dir: './dist' # Vite's default build output directory
+          production-branch: main # The branch that should trigger production deploys
+          deploy-message: "🚀 Deploy from GitHub Actions: ${{ github.event.head_commit.message }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 3
+
+# Instructions for the user (will be also added to README):
+# To use this workflow:
+# 1. Ensure your Vite project builds to the './dist' directory.
+# 2. In your GitHub repository, go to Settings > Secrets and variables > Actions.
+# 3. Add the following secrets:
+#    - NETLIFY_AUTH_TOKEN: Your Netlify personal access token.
+#    - NETLIFY_SITE_ID: The API ID of your Netlify site.
+#    - VITE_FIREBASE_API_KEY: Your Firebase API Key.
+#    - VITE_FIREBASE_AUTH_DOMAIN: Your Firebase Auth Domain.
+#    - VITE_FIREBASE_PROJECT_ID: Your Firebase Project ID.
+#    - VITE_FIREBASE_STORAGE_BUCKET: Your Firebase Storage Bucket.
+#    - VITE_FIREBASE_MESSAGING_SENDER_ID: Your Firebase Messaging Sender ID.
+#    - VITE_FIREBASE_APP_ID: Your Firebase App ID.
+# 4. Commit and push this workflow file to your repository.

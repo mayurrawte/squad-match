@@ -42,7 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 <Users className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                SquadMatch
+                Match Squad
               </h1>
             </motion.div>
 

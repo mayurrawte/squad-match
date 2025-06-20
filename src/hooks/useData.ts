@@ -208,6 +208,30 @@ export const useData = (userId?: string) => {
     });
   };
 
+  const updateMatchTeams = async (matchId: string, newTeams: Team[]) => {
+    try {
+      if (userId) {
+        await firestore.updateMatch(matchId, { teams: newTeams });
+      }
+
+      const newMatches = matches.map(m =>
+        m.id === matchId ? { ...m, teams: newTeams } : m
+      );
+      setMatches(newMatches);
+
+      if (!userId) {
+        // For localStorage, we need to save the entire matches array along with players
+        // Assuming players state is current, or fetch if necessary. For simplicity, using current players.
+        await saveData(players, newMatches);
+      }
+    } catch (error) {
+      console.error('Error updating match teams:', error);
+      // Optionally, handle UI feedback for error
+      // For now, ensure local state reflects optimistic update or previous state.
+      // The current implementation updates local state before save, so it's optimistic.
+    }
+  };
+
   return {
     players,
     matches,
@@ -216,6 +240,7 @@ export const useData = (userId?: string) => {
     updatePlayer,
     deletePlayer,
     addMatch,
+    updateMatchTeams, // Add new function here
     refresh: loadData,
   };
 };
