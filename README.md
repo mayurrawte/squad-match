@@ -2,6 +2,7 @@
 
 Match Squad is a dynamic application designed for creating, managing, and balancing teams for various games and activities. It helps organizers and players form equitable teams based on skill levels and tracks match outcomes.
 
+
 ## 🌟 Features
 
 *   **👤 Player Management**: Add, edit, and remove players with skill ratings and DiceBear avatars.
@@ -108,5 +109,6 @@ To enable successful automated deployments, you must configure the following sec
 These `VITE_FIREBASE_` secrets are used during the `npm run build` step to embed the correct Firebase configuration into your application.
 
 ---
+
 
 Enjoy managing your squads with Match Squad! 🎉
