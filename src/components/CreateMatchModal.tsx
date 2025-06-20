@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy } from 'lucide-react';
-import { Team, Match } from '../types';
+import { Team, Match, MatchType } from '../types';
 
 interface CreateMatchModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
   const [matchName, setMatchName] = useState('');
   const [winnerId, setWinnerId] = useState<string>('');
   const [isPublic, setIsPublic] = useState(false);
+  const [matchType, setMatchType] = useState<MatchType>(MatchType.Other);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +31,7 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
       winnerId: winnerId || undefined,
       date: new Date(),
       isPublic,
+      matchType,
     };
 
     onCreateMatch(match);
@@ -38,6 +40,7 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
     setMatchName('');
     setWinnerId('');
     setIsPublic(false);
+    setMatchType(MatchType.Other);
     onClose();
   };
 
@@ -83,6 +86,25 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
                   placeholder="Enter match name or leave blank for auto-name"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="matchType" className="block text-sm font-medium text-gray-700 mb-2">
+                  Match Type
+                </label>
+                <select
+                  id="matchType"
+                  name="matchType"
+                  value={matchType}
+                  onChange={(e) => setMatchType(e.target.value as MatchType)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                >
+                  {Object.values(MatchType).map((type) => (
+                    <option key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

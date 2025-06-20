@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Trophy, Users, Edit3, Edit } from 'lucide-react';
-import { Match, Team } from '../types';
+import { Calendar, Trophy, Users, Edit3, Edit, Tag } from 'lucide-react'; // Added Tag for matchType
+import { Match, Team, MatchType } from '../types';
 import { UpdateMatchModal } from './UpdateMatchModal';
 import { TeamEditor } from './TeamEditor';
 import { useAuth } from '../hooks/useAuth';
@@ -56,7 +56,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{match.name}</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{match.name}</h3>
+              {match.matchType && (
+                <div className="flex items-center space-x-1 text-xs text-purple-600 mt-1">
+                  <Tag className="w-3 h-3" />
+                  <span>{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
