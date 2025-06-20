@@ -36,11 +36,15 @@ export enum MatchType {
   Other = "other",
 }
 
+import { User as SupabaseUser } from '@supabase/supabase-js'; // Keep this for internal hook use
+
+// Application-specific User type
 export interface User {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
+  id: string; // Changed from uid to id
+  email?: string; // Email might not always be present or needed by UI
+  displayName?: string; // From user_metadata
+  photoURL?: string;    // From user_metadata (e.g., avatar_url)
+  // Add any other fields your application specifically needs from the user
 }
 
 export interface AppState {

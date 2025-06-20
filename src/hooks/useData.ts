@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Player, Match } from '../types';
 import { localStorage_storage } from '../lib/storage';
-import * as firestore from '../lib/firestore';
+import * as database from '../lib/database'; // Changed import
 
 export const useData = (userId?: string) => {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -16,13 +16,13 @@ export const useData = (userId?: string) => {
     setLoading(true);
     try {
       if (userId) {
-        // Load from Firestore
-        const [firestorePlayers, firestoreMatches] = await Promise.all([
-          firestore.getPlayers(userId),
-          firestore.getMatches(userId)
+        // Load from Supabase
+        const [dbPlayers, dbMatches] = await Promise.all([
+          database.getPlayers(userId),
+          database.getMatches(userId)
         ]);
-        setPlayers(firestorePlayers);
-        setMatches(firestoreMatches);
+        setPlayers(dbPlayers);
+        setMatches(dbMatches);
       } else {
         // Load from localStorage
         setPlayers(localStorage_storage.getPlayers());
@@ -41,7 +41,7 @@ export const useData = (userId?: string) => {
   const saveData = async (newPlayers: Player[], newMatches: Match[]) => {
     try {
       if (userId) {
-        // Data is saved individually through Firestore functions
+        // Data is saved individually through database functions
         // This function is mainly for localStorage fallback
       } else {
         localStorage_storage.savePlayers(newPlayers);
@@ -58,8 +58,8 @@ export const useData = (userId?: string) => {
   const addPlayer = async (player: Player) => {
     try {
       if (userId) {
-        const firestoreId = await firestore.addPlayer(player, userId);
-        const newPlayer = { ...player, id: firestoreId };
+        const dbId = await database.addPlayer(player, userId);
+        const newPlayer = { ...player, id: dbId };
         setPlayers(prev => [newPlayer, ...prev]);
       } else {
         const newPlayers = [player, ...players];
@@ -78,7 +78,7 @@ export const useData = (userId?: string) => {
   const updatePlayer = async (playerId: string, updates: Partial<Player>) => {
     try {
       if (userId) {
-        await firestore.updatePlayer(playerId, updates);
+        await database.updatePlayer(playerId, updates);
       }
       
       const newPlayers = players.map(p => 
@@ -103,7 +103,7 @@ export const useData = (userId?: string) => {
   const deletePlayer = async (playerId: string) => {
     try {
       if (userId) {
-        await firestore.deletePlayer(playerId);
+        await database.deletePlayer(playerId);
       }
       
       const newPlayers = players.filter(p => p.id !== playerId);
@@ -124,8 +124,8 @@ export const useData = (userId?: string) => {
   const addMatch = async (match: Match) => {
     try {
       if (userId) {
-        const firestoreId = await firestore.addMatch(match, userId);
-        const newMatch = { ...match, id: firestoreId };
+        const dbId = await database.addMatch(match, userId);
+        const newMatch = { ...match, id: dbId };
         setMatches(prev => [newMatch, ...prev]);
         
         // Update player stats
@@ -169,9 +169,9 @@ export const useData = (userId?: string) => {
           wins: isWinner ? player.wins + 1 : player.wins,
         };
         
-        // Update in Firestore if user is logged in
+        // Update in Supabase if user is logged in
         if (userId) {
-          firestore.updatePlayer(player.id, {
+          database.updatePlayer(player.id, {
             matchesPlayed: newStats.matchesPlayed,
             wins: newStats.wins
           }).catch(console.error);
@@ -211,7 +211,7 @@ export const useData = (userId?: string) => {
   const updateMatchTeams = async (matchId: string, newTeams: Team[]) => {
     try {
       if (userId) {
-        await firestore.updateMatch(matchId, { teams: newTeams });
+        await database.updateMatch(matchId, { teams: newTeams });
       }
 
       const newMatches = matches.map(m =>
