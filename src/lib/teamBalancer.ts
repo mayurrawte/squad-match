@@ -15,7 +15,20 @@ export const generateBalancedTeams = (players: Player[], numTeams: number = 2): 
   }
 
   // Sort players by skill rating (descending)
-  const sortedPlayers = [...players].sort((a, b) => b.skillRating - a.skillRating);
+  // If positionSkills for football are available, use a composite score for sorting
+  const sortedPlayers = [...players].sort((a, b) => {
+    const getCompositeScore = (player: Player): number => {
+      if (player.positionSkills &&
+          typeof player.positionSkills.forward === 'number' &&
+          typeof player.positionSkills.midfield === 'number' &&
+          typeof player.positionSkills.defender === 'number') {
+        return (player.positionSkills.forward + player.positionSkills.midfield + player.positionSkills.defender + player.skillRating) / 4;
+      }
+      return player.skillRating;
+    };
+
+    return getCompositeScore(b) - getCompositeScore(a);
+  });
   
   // Initialize teams
   const teams: Team[] = Array.from({ length: numTeams }, (_, index) => ({
@@ -49,7 +62,17 @@ export const generateBalancedTeams = (players: Player[], numTeams: number = 2): 
   // Calculate average skill for each team
   teams.forEach(team => {
     if (team.players.length > 0) {
-      team.averageSkill = team.players.reduce((sum, player) => sum + player.skillRating, 0) / team.players.length;
+      const totalSkill = team.players.reduce((sum, player) => {
+        let playerScore = player.skillRating;
+        if (player.positionSkills &&
+            typeof player.positionSkills.forward === 'number' &&
+            typeof player.positionSkills.midfield === 'number' &&
+            typeof player.positionSkills.defender === 'number') {
+          playerScore = (player.positionSkills.forward + player.positionSkills.midfield + player.positionSkills.defender + player.skillRating) / 4;
+        }
+        return sum + playerScore;
+      }, 0);
+      team.averageSkill = totalSkill / team.players.length;
       team.averageSkill = Math.round(team.averageSkill * 10) / 10; // Round to 1 decimal
     }
   });
