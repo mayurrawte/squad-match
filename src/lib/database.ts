@@ -141,21 +141,40 @@ export const getMatches = async (userId: string): Promise<Match[]> => {
 
 export const getPublicMatches = async (limitCount: number = 50): Promise<Match[]> => {
   try {
+    // Assuming your public user data (like displayName) is in a 'profiles' table
+    // and it has a foreign key 'id' that matches 'auth.users.id' (which is stored in matches.createdBy)
     const { data, error } = await supabase
       .from(MATCHES_TABLE)
-      .select('*')
+      .select(`
+        *,
+        profile:profiles (displayName)
+      `) // Adjust 'profiles(displayName)' if your table/column names are different
       .eq('isPublic', true)
       .order('date', { ascending: false })
       .limit(limitCount);
 
-    if (error) throw error;
-    return data ? data.map(m => ({
-      ...m,
-      date: new Date(m.date),
-      matchType: m.matchType as MatchType | undefined,
-    })) : [];
+    if (error) {
+      console.error('Error getting public matches:', error);
+      // Fallback or re-throw, depending on how you want to handle missing profiles
+      // For now, just log and continue, creatorDisplayName will be undefined
+    }
+
+    return data ? data.map((m: any) => {
+      // Supabase returns related records as an object or an array of objects.
+      // If 'profiles' is a one-to-one relation, m.profile will be an object.
+      const creatorDisplayName = m.profiles?.displayName || undefined; // Use optional chaining
+
+      return {
+        ...m,
+        date: new Date(m.date),
+        matchType: m.matchType as MatchType | undefined,
+        creatorDisplayName, // Add the fetched display name
+        profile: undefined, // Remove the raw profile data from the final object if not needed elsewhere
+      };
+    }) : [];
   } catch (error) {
-    console.error('Error getting public matches:', error);
+    // This catch is for other errors, like network issues with the primary query
+    console.error('Critical error getting public matches:', error);
     throw error;
   }
 };
