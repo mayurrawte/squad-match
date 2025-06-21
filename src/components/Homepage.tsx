@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Users, Trophy, Calendar, Star, Eye, Plus } from 'lucide-react';
-import { Match, Player } from '../types';
-import { getPublicMatches } from '../lib/database'; // Changed to database
+import { Match } from '../types'; // Player type is not directly used here anymore
+import { getPublicMatches } from '../lib/database';
 import { useAuth } from '../hooks/useAuth';
+import { MatchCard } from './MatchCard'; // Import MatchCard
 
 interface HomepageProps {
   onNavigate: (tab: string) => void;
@@ -192,105 +193,9 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               <AnimatePresence>
-                {filteredMatches.map((match, index) => {
-                  const winner = getWinnerInfo(match);
-                  
-                  return (
-                    <motion.div
-                      key={match.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      transition={{ delay: index * 0.1 }}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-purple-100"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-800 truncate">
-                            {match.name}
-                          </h3>
-                          <div className="flex items-center space-x-1 text-sm text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
-                            <Calendar className="w-3 h-3" />
-                            <span>{match.date.toLocaleDateString()}</span>
-                          </div>
-                        </div>
-
-                        {winner && (
-                          <div className="mb-4 p-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl border border-purple-200">
-                            <div className="flex items-center space-x-2">
-                              <Trophy className="w-4 h-4 text-purple-600" />
-                              <span className="text-sm font-medium text-purple-800">
-                                Winner: {winner.name}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-3">
-                          {match.teams.map((team) => (
-                            <div
-                              key={team.id}
-                              className={`p-3 rounded-xl border-2 transition-all ${
-                                team.id === match.winnerId
-                                  ? 'border-purple-300 bg-purple-50'
-                                  : 'border-gray-200 bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: team.color }}
-                                  />
-                                  <span className="font-medium text-gray-800 text-sm">
-                                    {team.name}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                  <Star className="w-3 h-3 text-yellow-500" />
-                                  <span>{team.averageSkill}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap gap-1">
-                                {team.players.slice(0, 3).map((player) => (
-                                  <div
-                                    key={player.id}
-                                    className="flex items-center space-x-1 bg-white px-2 py-1 rounded-full text-xs"
-                                  >
-                                    <img
-                                      src={player.avatar}
-                                      alt={player.name}
-                                      className="w-4 h-4 rounded-full"
-                                    />
-                                    <span className="text-gray-700 truncate max-w-16">
-                                      {player.name}
-                                    </span>
-                                  </div>
-                                ))}
-                                {team.players.length > 3 && (
-                                  <div className="bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-xs">
-                                    +{team.players.length - 3}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {!match.winnerId && (
-                          <div className="mt-4 text-center">
-                            <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                              Match in Progress
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {filteredMatches.map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
               </AnimatePresence>
             </motion.div>
           )}
