@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onSignOut,
 }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex flex-col">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-purple-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -133,6 +133,23 @@ export const Layout: React.FC<LayoutProps> = ({
       <main className={activeTab === 'home' ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
         {children}
       </main>
+
+      <footer className="bg-white/80 backdrop-blur-md border-t border-purple-200 mt-auto py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
+          <p>
+            Built with ❤️ by{' '}
+            <a
+              href="https://mayurrawte.github.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-600 hover:text-purple-800 font-medium"
+            >
+              Mayur Rawte
+            </a>
+          </p>
+          <p className="mt-1">and other amazing contributors.</p>
+        </div>
+      </footer>
     </div>
   );
 };
