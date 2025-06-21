@@ -188,16 +188,11 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
               )}
             </motion.div>
           ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
-              <AnimatePresence>
-                {filteredMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} />
-                ))}
-              </AnimatePresence>
-            </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
           )}
         </motion.div>
       </div>
