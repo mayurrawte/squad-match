@@ -2,6 +2,7 @@ export interface Player {
   id: string;
   name: string;
   skillRating: number;
+  positionSkills?: { [key: string]: number }; // e.g., { "forward": 5, "midfield": 4 }
   avatar: string;
   wins: number;
   matchesPlayed: number;

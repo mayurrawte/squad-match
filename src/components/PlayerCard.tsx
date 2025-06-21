@@ -17,11 +17,21 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(player.name);
   const [editSkill, setEditSkill] = useState(player.skillRating);
+  // Initialize with existing position skills or defaults
+  const [editForwardSkill, setEditForwardSkill] = useState(player.positionSkills?.forward ?? 5);
+  const [editMidfieldSkill, setEditMidfieldSkill] = useState(player.positionSkills?.midfield ?? 5);
+  const [editDefenderSkill, setEditDefenderSkill] = useState(player.positionSkills?.defender ?? 5);
+
 
   const handleSave = () => {
     onUpdate(player.id, {
       name: editName.trim(),
       skillRating: editSkill,
+      positionSkills: {
+        forward: editForwardSkill,
+        midfield: editMidfieldSkill,
+        defender: editDefenderSkill,
+      },
     });
     setIsEditing(false);
   };
@@ -29,6 +39,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   const handleCancel = () => {
     setEditName(player.name);
     setEditSkill(player.skillRating);
+    setEditForwardSkill(player.positionSkills?.forward ?? 5);
+    setEditMidfieldSkill(player.positionSkills?.midfield ?? 5);
+    setEditDefenderSkill(player.positionSkills?.defender ?? 5);
     setIsEditing(false);
   };
 
@@ -79,7 +92,21 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                       {editSkill}
                     </span>
                   </div>
-                  <div className="flex space-x-2">
+                  {/* Positional Skill Inputs */}
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Forward: {editForwardSkill}</label>
+                    <input type="range" min="1" max="10" value={editForwardSkill} onChange={(e) => setEditForwardSkill(Number(e.target.value))} className="w-full slider-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Midfield: {editMidfieldSkill}</label>
+                    <input type="range" min="1" max="10" value={editMidfieldSkill} onChange={(e) => setEditMidfieldSkill(Number(e.target.value))} className="w-full slider-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-500">Defender: {editDefenderSkill}</label>
+                    <input type="range" min="1" max="10" value={editDefenderSkill} onChange={(e) => setEditDefenderSkill(Number(e.target.value))} className="w-full slider-xs" />
+                  </div>
+
+                  <div className="flex space-x-2 pt-2">
                     <button
                       onClick={handleSave}
                       className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
@@ -111,6 +138,14 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                       </span>
                     </div>
                   </div>
++                  {/* Display Position Skills */}
++                  {player.positionSkills && (
++                    <div className="mt-2 text-xs text-gray-500">
++                      {typeof player.positionSkills.forward === 'number' && <span>F: {player.positionSkills.forward} </span>}
++                      {typeof player.positionSkills.midfield === 'number' && <span>M: {player.positionSkills.midfield} </span>}
++                      {typeof player.positionSkills.defender === 'number' && <span>D: {player.positionSkills.defender}</span>}
++                    </div>
++                  )}
                 </div>
               )}
             </div>

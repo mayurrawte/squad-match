@@ -12,6 +12,9 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [skillRating, setSkillRating] = useState(5);
+  const [forwardSkill, setForwardSkill] = useState(5);
+  const [midfieldSkill, setMidfieldSkill] = useState(5);
+  const [defenderSkill, setDefenderSkill] = useState(5);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +24,11 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
       id: Date.now().toString(),
       name: name.trim(),
       skillRating,
+      positionSkills: {
+        forward: forwardSkill,
+        midfield: midfieldSkill,
+        defender: defenderSkill,
+      },
       avatar: generateAvatar(name),
       wins: 0,
       matchesPlayed: 0,
@@ -30,12 +38,18 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     onAdd(newPlayer);
     setName('');
     setSkillRating(5);
+    setForwardSkill(5);
+    setMidfieldSkill(5);
+    setDefenderSkill(5);
     setIsOpen(false);
   };
 
   const handleCancel = () => {
     setName('');
     setSkillRating(5);
+    setForwardSkill(5);
+    setMidfieldSkill(5);
+    setDefenderSkill(5);
     setIsOpen(false);
   };
 
@@ -103,6 +117,49 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
                     <span>Beginner</span>
                     <span>Expert</span>
                   </div>
+                </div>
+
+                {/* Positional Skills Inputs - Assuming Football for now */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Forward Skill: {forwardSkill}/10
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={forwardSkill}
+                    onChange={(e) => setForwardSkill(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Midfield Skill: {midfieldSkill}/10
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={midfieldSkill}
+                    onChange={(e) => setMidfieldSkill(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Defender Skill: {defenderSkill}/10
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={defenderSkill}
+                    onChange={(e) => setDefenderSkill(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
                 </div>
 
                 <div className="flex space-x-3 pt-4">
