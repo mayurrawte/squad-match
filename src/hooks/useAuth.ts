@@ -52,6 +52,9 @@ export const useAuth = () => {
       setLoading(true);
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: window.location.href,
+        },
       });
       if (signInError) {
         throw signInError;
