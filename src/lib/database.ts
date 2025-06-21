@@ -8,12 +8,13 @@ const MATCHES_TABLE = 'matches';
 // Players
 export const addPlayer = async (player: Player, userId: string): Promise<string> => {
   try {
+    const { id, ...playerData } = player; // Destructure to remove client-side id
     const { data, error } = await supabase
       .from(PLAYERS_TABLE)
       .insert({
-        ...player,
-        userId,
-        createdAt: player.createdAt.toISOString()
+        ...playerData, // Use the rest of the player data
+        userId,       // This should be a UUID from auth
+        createdAt: player.createdAt.toISOString() // Assuming player.createdAt is a Date object
       })
       .select('id')
       .single();
