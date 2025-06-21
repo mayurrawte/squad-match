@@ -12,7 +12,7 @@ import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { Team, Match } from './types';
 import { Users, Trophy, Zap, Home } from 'lucide-react';
-import { updateMatch as updateMatchInFirestore } from './lib/firestore';
+import { updateMatch } from './lib/database'; // Updated import
 import toast from 'react-hot-toast';
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
     deletePlayer, 
     addMatch,
     refresh
-  } = useData(user?.uid);
+  } = useData(user?.id); // Changed to user?.id
 
   const handleDeletePlayer = (playerId: string) => {
     deletePlayer(playerId);
@@ -52,7 +52,7 @@ function App() {
     try {
       if (user) {
         console.log(`Attempting to update match: ${matchId} with winnerId: ${winnerId}`); // Logging
-        await updateMatchInFirestore(matchId, { winnerId });
+        await updateMatch(matchId, { winnerId }); // Use updated function
         await refresh(); // Refresh data to get updated match
 
         // Find and log the updated match from the local state
@@ -79,8 +79,8 @@ function App() {
   const handleMatchTeamsChange = async (matchId: string, newTeams: Team[]) => {
     try {
       if (user) {
-        // Step 2.2: Call updateMatchInFirestore
-        await updateMatchInFirestore(matchId, { teams: newTeams });
+        // Step 2.2: Call updateMatch
+        await updateMatch(matchId, { teams: newTeams }); // Use updated function
         // Step 2.3: Call refresh
         await refresh();
         // Step 2.4: Add success toast

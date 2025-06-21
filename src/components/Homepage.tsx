@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Users, Trophy, Calendar, Star, Eye, Plus } from 'lucide-react';
 import { Match, Player } from '../types';
-import { getPublicMatches } from '../lib/firestore';
+import { getPublicMatches } from '../lib/database'; // Changed to database
 import { useAuth } from '../hooks/useAuth';
 
 interface HomepageProps {
