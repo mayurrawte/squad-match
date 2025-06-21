@@ -29,7 +29,7 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
   onTeamsUpdate,
   onClose,
 }) => {
-  const [editedTeams, setEditedTeams] = useState<Team[]>(teams);
+  const [editedTeams, setEditedTeams] = useState<Team[]>(JSON.parse(JSON.stringify(teams))); // Deep copy to avoid mutating original
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -115,6 +115,14 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
     setEditedTeams(recalculateTeamAverageSkills(newTeamsState));
   };
 
+  const handleEditTeamName = (teamId: string, newName: string) => {
+    setEditedTeams(prevTeams =>
+      prevTeams.map(team =>
+        team.id === teamId ? { ...team, name: newName } : team
+      )
+    );
+  };
+
   // This function is now effectively replaced by the logic in handleDragEnd
   // It can be removed or kept if it's used elsewhere, but for dnd-kit it's not directly used.
   const handleSwapPlayers = (player1: Player, team1Id: string, player2: Player, team2Id: string) => {
@@ -150,7 +158,8 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
   };
 
   const handleReset = () => {
-    setEditedTeams(teams);
+    // Reset to the original teams passed in props, also deep copy
+    setEditedTeams(JSON.parse(JSON.stringify(teams)));
   };
 
   return (
@@ -202,10 +211,20 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
                   style={{ borderColor: team.color }}
                 >
                   <div className="mb-4 text-center">
+                    <input
+                      type="text"
+                      value={team.name}
+                      onChange={(e) => handleEditTeamName(team.id, e.target.value)}
+                      className="w-full text-lg font-semibold text-center border-b-2 border-gray-300 focus:border-purple-500 outline-none px-2 py-1 bg-transparent transition-colors"
+                      style={{ color: team.color }}
+                      placeholder="Team Name"
+                    />
+                    {/* Original h3 replaced by input
                     <h3 className="text-lg font-semibold" style={{ color: team.color }}>
-                    {team.name}
-                  </h3>
-                  <div className="text-sm text-gray-600 mt-1">
+                      {team.name}
+                    </h3>
+                    */}
+                  <div className="text-sm text-gray-600 mt-2"> {/* Added mt-2 for spacing */}
                     <div className="flex items-center justify-center space-x-1">
                       <Star className="w-3 h-3 text-yellow-500" />
                       <span>Avg: {team.averageSkill}/10</span>

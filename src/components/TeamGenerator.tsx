@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shuffle, Users, Trophy, Star, Edit3 } from 'lucide-react';
 import { Player, Team } from '../types';
 import { generateBalancedTeams, getTeamBalance } from '../lib/teamBalancer';
+import { generateRandomTeamName } from '../lib/nameGenerator'; // Added import
 import { TeamEditor } from './TeamEditor';
 
 interface TeamGeneratorProps {
@@ -37,7 +38,18 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const selectedPlayerObjs = players.filter(p => selectedPlayers.includes(p.id));
-    const teams = generateBalancedTeams(selectedPlayerObjs, numTeams);
+    let teams = generateBalancedTeams(selectedPlayerObjs, numTeams);
+
+    // Assign unique random names to teams
+    const usedNames = new Set<string>();
+    teams = teams.map(team => {
+      let randomName;
+      do {
+        randomName = generateRandomTeamName();
+      } while (usedNames.has(randomName));
+      usedNames.add(randomName);
+      return { ...team, name: randomName };
+    });
     
     setGeneratedTeams(teams);
     setIsGenerating(false);

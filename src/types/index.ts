@@ -24,6 +24,7 @@ export interface Match {
   date: Date;
   isPublic: boolean;
   createdBy?: string;
+  creatorDisplayName?: string; // Added for creator's display name
   matchType?: MatchType;
 }
 

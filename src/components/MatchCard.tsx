@@ -58,12 +58,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{match.name}</h3>
-              {match.matchType && (
-                <div className="flex items-center space-x-1 text-xs text-purple-600 mt-1">
-                  <Tag className="w-3 h-3" />
-                  <span>{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                {match.matchType && (
+                  <div className="flex items-center space-x-1 text-xs text-purple-600 mt-1 sm:mt-0">
+                    <Tag className="w-3 h-3" />
+                    <span>{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>
+                  </div>
+                )}
+                {match.creatorDisplayName && (
+                  <span className="text-xs text-gray-500 mt-1 sm:mt-0">
+                    Created by: {match.creatorDisplayName}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
