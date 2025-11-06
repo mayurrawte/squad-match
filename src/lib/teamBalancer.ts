@@ -9,27 +9,39 @@ const TEAM_COLORS = [
   '#10B981', // Emerald
 ];
 
+// Helper function to calculate composite score
+const getCompositeScore = (player: Player): number => {
+  if (player.positionSkills &&
+      typeof player.positionSkills.goalkeeper === 'number' &&
+      typeof player.positionSkills.defender === 'number' &&
+      typeof player.positionSkills.midfield === 'number' &&
+      typeof player.positionSkills.forward === 'number') {
+    return (player.positionSkills.goalkeeper + player.positionSkills.defender +
+            player.positionSkills.midfield + player.positionSkills.forward +
+            player.skillRating) / 5;
+  }
+  return player.skillRating;
+};
+
+// Helper function to get best position for a player
+const getBestPosition = (player: Player): string => {
+  if (!player.positionSkills) return 'any';
+
+  const positions = {
+    goalkeeper: player.positionSkills.goalkeeper || 0,
+    defender: player.positionSkills.defender || 0,
+    midfield: player.positionSkills.midfield || 0,
+    forward: player.positionSkills.forward || 0,
+  };
+
+  return Object.entries(positions).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+};
+
 export const generateBalancedTeams = (players: Player[], numTeams: number = 2): Team[] => {
   if (players.length < numTeams) {
     throw new Error('Not enough players to create teams');
   }
 
-  // Sort players by skill rating (descending)
-  // If positionSkills for football are available, use a composite score for sorting
-  const sortedPlayers = [...players].sort((a, b) => {
-    const getCompositeScore = (player: Player): number => {
-      if (player.positionSkills &&
-          typeof player.positionSkills.forward === 'number' &&
-          typeof player.positionSkills.midfield === 'number' &&
-          typeof player.positionSkills.defender === 'number') {
-        return (player.positionSkills.forward + player.positionSkills.midfield + player.positionSkills.defender + player.skillRating) / 4;
-      }
-      return player.skillRating;
-    };
-
-    return getCompositeScore(b) - getCompositeScore(a);
-  });
-  
   // Initialize teams
   const teams: Team[] = Array.from({ length: numTeams }, (_, index) => ({
     id: `team-${index + 1}`,
@@ -39,38 +51,28 @@ export const generateBalancedTeams = (players: Player[], numTeams: number = 2): 
     color: TEAM_COLORS[index % TEAM_COLORS.length],
   }));
 
-  // Distribute players using a snake draft approach
-  let currentTeam = 0;
-  let direction = 1;
+  // Shuffle players for randomization, then sort by composite score
+  const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+  const sortedPlayers = shuffledPlayers.sort((a, b) => getCompositeScore(b) - getCompositeScore(a));
 
-  for (const player of sortedPlayers) {
-    teams[currentTeam].players.push(player);
-    
-    // Move to next team
-    currentTeam += direction;
-    
-    // Reverse direction when reaching the end
-    if (currentTeam >= numTeams) {
-      currentTeam = numTeams - 1;
-      direction = -1;
-    } else if (currentTeam < 0) {
-      currentTeam = 0;
-      direction = 1;
-    }
-  }
+  // Distribute players using simple snake draft
+  // Pattern for 2 teams: 0, 1, 1, 0, 0, 1, 1, 0...
+  // Pattern for 3 teams: 0, 1, 2, 2, 1, 0, 0, 1, 2...
+  sortedPlayers.forEach((player, index) => {
+    const cycle = Math.floor(index / numTeams);
+    const posInCycle = index % numTeams;
+
+    // If cycle is odd, reverse the order (snake pattern)
+    const teamIndex = cycle % 2 === 0 ? posInCycle : numTeams - 1 - posInCycle;
+
+    teams[teamIndex].players.push(player);
+  });
 
   // Calculate average skill for each team
   teams.forEach(team => {
     if (team.players.length > 0) {
       const totalSkill = team.players.reduce((sum, player) => {
-        let playerScore = player.skillRating;
-        if (player.positionSkills &&
-            typeof player.positionSkills.forward === 'number' &&
-            typeof player.positionSkills.midfield === 'number' &&
-            typeof player.positionSkills.defender === 'number') {
-          playerScore = (player.positionSkills.forward + player.positionSkills.midfield + player.positionSkills.defender + player.skillRating) / 4;
-        }
-        return sum + playerScore;
+        return sum + getCompositeScore(player);
       }, 0);
       team.averageSkill = totalSkill / team.players.length;
       team.averageSkill = Math.round(team.averageSkill * 10) / 10; // Round to 1 decimal

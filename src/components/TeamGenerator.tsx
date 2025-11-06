@@ -215,11 +215,12 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
                           <div className="flex-1">
                             <div className="font-medium text-gray-900">{player.name}</div>
                             {player.positionSkills &&
-                             typeof player.positionSkills.forward === 'number' &&
+                             typeof player.positionSkills.goalkeeper === 'number' &&
+                             typeof player.positionSkills.defender === 'number' &&
                              typeof player.positionSkills.midfield === 'number' &&
-                             typeof player.positionSkills.defender === 'number' ? (
+                             typeof player.positionSkills.forward === 'number' ? (
                               <div className="text-xs text-gray-500">
-                                F:{player.positionSkills.forward} M:{player.positionSkills.midfield} D:{player.positionSkills.defender} (Avg: {((player.positionSkills.forward + player.positionSkills.midfield + player.positionSkills.defender + player.skillRating)/4).toFixed(1)})
+                                GK:{player.positionSkills.goalkeeper} D:{player.positionSkills.defender} M:{player.positionSkills.midfield} F:{player.positionSkills.forward} (Avg: {((player.positionSkills.goalkeeper + player.positionSkills.defender + player.positionSkills.midfield + player.positionSkills.forward + player.skillRating)/5).toFixed(1)})
                               </div>
                             ) : (
                               <div className="flex items-center space-x-1">

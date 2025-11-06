@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Edit2, Trash2, Star, Trophy } from 'lucide-react';
-import { Player } from '../types';
+import { Player, MatchType } from '../types';
 
 interface PlayerCardProps {
   player: Player;
@@ -18,20 +18,42 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   const [editName, setEditName] = useState(player.name);
   const [editSkill, setEditSkill] = useState(player.skillRating);
   // Initialize with existing position skills or defaults
-  const [editForwardSkill, setEditForwardSkill] = useState(player.positionSkills?.forward ?? 5);
-  const [editMidfieldSkill, setEditMidfieldSkill] = useState(player.positionSkills?.midfield ?? 5);
+  const [editGoalkeeperSkill, setEditGoalkeeperSkill] = useState(player.positionSkills?.goalkeeper ?? 5);
   const [editDefenderSkill, setEditDefenderSkill] = useState(player.positionSkills?.defender ?? 5);
+  const [editMidfieldSkill, setEditMidfieldSkill] = useState(player.positionSkills?.midfield ?? 5);
+  const [editForwardSkill, setEditForwardSkill] = useState(player.positionSkills?.forward ?? 5);
 
+  // Auto-calculate overall rating for football players when editing
+  useEffect(() => {
+    if (isEditing && player.sport === MatchType.Football) {
+      const avgRating = (editGoalkeeperSkill + editDefenderSkill + editMidfieldSkill + editForwardSkill) / 4;
+      setEditSkill(Math.round(avgRating));
+    }
+  }, [isEditing, player.sport, editGoalkeeperSkill, editDefenderSkill, editMidfieldSkill, editForwardSkill]);
+
+  const getSportIcon = (sport?: MatchType) => {
+    switch (sport) {
+      case MatchType.Football: return '⚽';
+      case MatchType.Basketball: return '🏀';
+      case MatchType.Volleyball: return '🏐';
+      case MatchType.Tennis: return '🎾';
+      case MatchType.Badminton: return '🏸';
+      default: return '🎯';
+    }
+  };
 
   const handleSave = () => {
     onUpdate(player.id, {
       name: editName.trim(),
       skillRating: editSkill,
-      positionSkills: {
-        forward: editForwardSkill,
-        midfield: editMidfieldSkill,
-        defender: editDefenderSkill,
-      },
+      ...(player.sport === MatchType.Football && {
+        positionSkills: {
+          goalkeeper: editGoalkeeperSkill,
+          defender: editDefenderSkill,
+          midfield: editMidfieldSkill,
+          forward: editForwardSkill,
+        },
+      }),
     });
     setIsEditing(false);
   };
@@ -39,9 +61,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   const handleCancel = () => {
     setEditName(player.name);
     setEditSkill(player.skillRating);
-    setEditForwardSkill(player.positionSkills?.forward ?? 5);
-    setEditMidfieldSkill(player.positionSkills?.midfield ?? 5);
+    setEditGoalkeeperSkill(player.positionSkills?.goalkeeper ?? 5);
     setEditDefenderSkill(player.positionSkills?.defender ?? 5);
+    setEditMidfieldSkill(player.positionSkills?.midfield ?? 5);
+    setEditForwardSkill(player.positionSkills?.forward ?? 5);
     setIsEditing(false);
   };
 
@@ -78,33 +101,61 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                     className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Player name"
                   />
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">Skill:</span>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={editSkill}
-                      onChange={(e) => setEditSkill(Number(e.target.value))}
-                      className="flex-1"
-                    />
-                    <span className="text-sm font-medium w-8 text-center">
-                      {editSkill}
-                    </span>
-                  </div>
+                  {player.sport !== MatchType.Football && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">Skill:</span>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={editSkill}
+                        onChange={(e) => setEditSkill(Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <span className="text-sm font-medium w-8 text-center">
+                        {editSkill}
+                      </span>
+                    </div>
+                  )}
+                  {player.sport === MatchType.Football && (
+                    <div className="flex items-center justify-between bg-purple-50 px-3 py-2 rounded-md">
+                      <span className="text-xs text-gray-600">Overall Rating (Auto-calculated)</span>
+                      <span className="text-sm font-bold text-purple-600">{editSkill}/10</span>
+                    </div>
+                  )}
                   {/* Positional Skill Inputs */}
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-500">Forward: {editForwardSkill}</label>
-                    <input type="range" min="1" max="10" value={editForwardSkill} onChange={(e) => setEditForwardSkill(Number(e.target.value))} className="w-full slider-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-500">Midfield: {editMidfieldSkill}</label>
-                    <input type="range" min="1" max="10" value={editMidfieldSkill} onChange={(e) => setEditMidfieldSkill(Number(e.target.value))} className="w-full slider-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-500">Defender: {editDefenderSkill}</label>
-                    <input type="range" min="1" max="10" value={editDefenderSkill} onChange={(e) => setEditDefenderSkill(Number(e.target.value))} className="w-full slider-xs" />
-                  </div>
+                  {player.sport === MatchType.Football && (
+                    <div className="space-y-2 border-t pt-2">
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-medium text-gray-600">🧤 Goalkeeper</label>
+                        <span className="text-xs font-bold text-purple-600">{editGoalkeeperSkill}</span>
+                      </div>
+                      <input type="range" min="1" max="10" value={editGoalkeeperSkill} onChange={(e) => setEditGoalkeeperSkill(Number(e.target.value))} className="w-full slider-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-medium text-gray-600">🛡️ Defender</label>
+                        <span className="text-xs font-bold text-blue-600">{editDefenderSkill}</span>
+                      </div>
+                      <input type="range" min="1" max="10" value={editDefenderSkill} onChange={(e) => setEditDefenderSkill(Number(e.target.value))} className="w-full slider-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-medium text-gray-600">⚡ Midfielder</label>
+                        <span className="text-xs font-bold text-cyan-600">{editMidfieldSkill}</span>
+                      </div>
+                      <input type="range" min="1" max="10" value={editMidfieldSkill} onChange={(e) => setEditMidfieldSkill(Number(e.target.value))} className="w-full slider-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-medium text-gray-600">🎯 Forward</label>
+                        <span className="text-xs font-bold text-green-600">{editForwardSkill}</span>
+                      </div>
+                      <input type="range" min="1" max="10" value={editForwardSkill} onChange={(e) => setEditForwardSkill(Number(e.target.value))} className="w-full slider-xs" />
+                    </div>
+                    </div>
+                  )}
 
                   <div className="flex space-x-2 pt-2">
                     <button
@@ -123,7 +174,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                 </div>
               ) : (
                 <div>
-                  <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                    <span className="text-lg">{getSportIcon(player.sport)}</span>
+                  </div>
                   <div className="flex items-center space-x-3 mt-1">
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 text-yellow-500" />
@@ -138,14 +192,15 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
                       </span>
                     </div>
                   </div>
-+                  {/* Display Position Skills */}
-+                  {player.positionSkills && (
-+                    <div className="mt-2 text-xs text-gray-500">
-+                      {typeof player.positionSkills.forward === 'number' && <span>F: {player.positionSkills.forward} </span>}
-+                      {typeof player.positionSkills.midfield === 'number' && <span>M: {player.positionSkills.midfield} </span>}
-+                      {typeof player.positionSkills.defender === 'number' && <span>D: {player.positionSkills.defender}</span>}
-+                    </div>
-+                  )}
+                  {/* Display Position Skills */}
+                  {player.sport === MatchType.Football && player.positionSkills && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      {typeof player.positionSkills.goalkeeper === 'number' && <span>GK: {player.positionSkills.goalkeeper} </span>}
+                      {typeof player.positionSkills.defender === 'number' && <span>D: {player.positionSkills.defender} </span>}
+                      {typeof player.positionSkills.midfield === 'number' && <span>M: {player.positionSkills.midfield} </span>}
+                      {typeof player.positionSkills.forward === 'number' && <span>F: {player.positionSkills.forward}</span>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
