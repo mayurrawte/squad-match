@@ -5,7 +5,7 @@ Match Squad is a dynamic application designed for creating, managing, and balanc
 
 ## 🌟 Features
 
-*   **👤 Player Management**: Add, edit, and remove players with skill ratings and DiceBear avatars.
+*   **👤 Player Management**: Add, edit, and remove players with skill ratings, DiceBear avatars, and multi-position tags (primary + secondary/tertiary) for smarter auto-placement.
 *   **🛠️ Skill-Based Team Generation**: Automatically create balanced teams using a snake draft algorithm.
 *   **🔄 Drag & Drop Team Editor**:
     *   Rearrange players within a team.
@@ -17,9 +17,9 @@ Match Squad is a dynamic application designed for creating, managing, and balanc
     *   Record match results and winners.
     *   Public/private match visibility options.
 *   **📊 Match History & Stats**: View past matches and player performance (wins, matches played).
-*   **🔒 Authentication**: Secure user accounts with Firebase Authentication.
+*   **🔒 Authentication**: Secure user accounts with Supabase Auth (Google OAuth).
 *   **☁️ Cloud & Local Data**:
-    *   Player and match data stored in Firebase Firestore for logged-in users.
+    *   Player and match data stored in Supabase (PostgreSQL) for logged-in users.
     *   Fallback to local storage for guest users.
 *   **🎨 Modern UI**:
     *   Sleek purple/blue interface built with Tailwind CSS.
@@ -29,11 +29,11 @@ Match Squad is a dynamic application designed for creating, managing, and balanc
 
 ## 💻 Tech Stack
 
-*   **Frontend**: React 18 + TypeScript
-*   **Styling**: Tailwind CSS
+*   **Frontend**: React 19 + TypeScript
+*   **Styling**: Tailwind CSS v4
 *   **Animations**: Framer Motion
 *   **Icons**: Lucide Icons
-*   **Backend & Database**: Firebase (Authentication & Firestore)
+*   **Backend & Database**: Supabase (Auth & PostgreSQL)
 *   **Build Tool**: Vite
 *   **Deployment**: Netlify (via GitHub Actions)
 
@@ -41,9 +41,9 @@ Match Squad is a dynamic application designed for creating, managing, and balanc
 
 ### Prerequisites
 
-*   Node.js (v18 or later recommended)
+*   Node.js (v20 LTS or later recommended)
 *   npm (comes with Node.js)
-*   A Firebase project set up with Authentication and Firestore enabled.
+*   A Supabase project set up with Auth (Google OAuth) and database tables for players and matches.
 
 ### Installation & Setup
 
@@ -58,19 +58,15 @@ Match Squad is a dynamic application designed for creating, managing, and balanc
     npm install
     ```
 
-3.  **Set up Firebase configuration:**
+3.  **Set up Supabase configuration:**
     *   Create a `.env.local` file in the root of the project.
-    *   Add your Firebase project's configuration details to this file. Example:
+    *   Add your Supabase project's configuration details to this file. Example:
         ```env
-        VITE_FIREBASE_API_KEY="your_api_key"
-        VITE_FIREBASE_AUTH_DOMAIN="your_auth_domain"
-        VITE_FIREBASE_PROJECT_ID="your_project_id"
-        VITE_FIREBASE_STORAGE_BUCKET="your_storage_bucket"
-        VITE_FIREBASE_MESSAGING_SENDER_ID="your_sender_id"
-        VITE_FIREBASE_APP_ID="your_app_id"
+        VITE_SUPABASE_URL="https://your-project.supabase.co"
+        VITE_SUPABASE_ANON_KEY="your_anon_key"
         ```
-    *   You can find these details in your Firebase project settings.
-    *   The application uses these environment variables in `src/lib/firebase.ts`.
+    *   You can find these details in your Supabase project settings under API.
+    *   The application uses these in `src/lib/supabase.ts`.
 
 ### Running the Development Server
 
@@ -88,7 +84,7 @@ This project is configured for continuous deployment to **Netlify** via **GitHub
 
 On every push to the `main` branch, the GitHub Action will automatically perform the following steps:
 1.  🛎️ **Checkout Code**: Fetches the latest code from your repository.
-2.  ⚙️ **Set up Node.js**: Configures the Node.js environment (version 18).
+2.  ⚙️ **Set up Node.js**: Configures the Node.js environment (version 20 LTS).
 3.  📦 **Install Dependencies**: Runs `npm ci` to install all project dependencies.
 4.  🛠️ **Build Application**: Executes `npm run build` to create a production-ready build in the `./dist` directory. This step requires Firebase environment variables to be available (see secrets below).
 5.  ☁️ **Deploy to Netlify**: Uses the `nwtgck/actions-netlify@v2.0` action to deploy the contents of the `./dist` folder to your Netlify site.
@@ -99,14 +95,10 @@ To enable successful automated deployments, you must configure the following sec
 
 *   `NETLIFY_AUTH_TOKEN`: Your Netlify Personal Access Token. You can generate this from your Netlify user settings (User settings > Applications > Personal access tokens).
 *   `NETLIFY_SITE_ID`: The API ID or Site ID of your site on Netlify. You can find this in your Netlify site's settings (Site details > Site information > API ID).
-*   `VITE_FIREBASE_API_KEY`: Your Firebase project's API Key.
-*   `VITE_FIREBASE_AUTH_DOMAIN`: Your Firebase project's Auth Domain.
-*   `VITE_FIREBASE_PROJECT_ID`: Your Firebase project's Project ID.
-*   `VITE_FIREBASE_STORAGE_BUCKET`: Your Firebase project's Storage Bucket.
-*   `VITE_FIREBASE_MESSAGING_SENDER_ID`: Your Firebase project's Messaging Sender ID.
-*   `VITE_FIREBASE_APP_ID`: Your Firebase project's App ID.
+*   `VITE_SUPABASE_URL`: Your Supabase project URL.
+*   `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key.
 
-These `VITE_FIREBASE_` secrets are used during the `npm run build` step to embed the correct Firebase configuration into your application.
+These `VITE_SUPABASE_` secrets are used during the `npm run build` step to embed the correct Supabase configuration into your application.
 
 ---
 

@@ -1,21 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Users, Trophy, Calendar, Star, Eye, Plus } from 'lucide-react';
-import { Match } from '../types'; // Player type is not directly used here anymore
+import { Search } from 'lucide-react';
+import { Match } from '../types';
 import { getPublicMatches } from '../lib/database';
-import { useAuth } from '../hooks/useAuth';
-import { MatchCard } from './MatchCard'; // Import MatchCard
 
 interface HomepageProps {
   onNavigate: (tab: string) => void;
 }
+
+function fmtDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toLowerCase();
+}
+
+// Whistle SVG doodle
+const WhistleDoodle: React.FC = () => (
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" opacity={0.6}>
+    <ellipse cx="14" cy="20" rx="8" ry="5" stroke="#1A1A1A" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <rect x="22" y="17" width="10" height="6" rx="2" stroke="#1A1A1A" strokeWidth="1.8" fill="none" />
+    <line x1="32" y1="20" x2="36" y2="14" stroke="#1A1A1A" strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="32" cy="14" r="2" fill="#1A1A1A" opacity="0.6" />
+    <circle cx="14" cy="20" r="3" fill="none" stroke="#1A1A1A" strokeWidth="1.3" strokeDasharray="2 1.5" />
+  </svg>
+);
+
+// Small football doodle
+const FootballSmall: React.FC = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" opacity={0.55}>
+    <circle cx="12" cy="12" r="10" stroke="#1A1A1A" strokeWidth="1.8" fill="none" />
+    <polygon points="12,6 14,9.5 17.5,9.5 14.8,12 16,15.5 12,13.2 8,15.5 9.2,12 6.5,9.5 10,9.5" fill="none" stroke="#1A1A1A" strokeWidth="1.3" strokeLinejoin="round" />
+  </svg>
+);
+
+// Pin/tape SVG for cards
+const CardTape: React.FC = () => (
+  <svg width="16" height="10" viewBox="0 0 16 10" style={{ position: 'absolute', top: -5, right: 10 }}>
+    <rect x="0" y="0" width="16" height="10" rx="1" fill="#FACC15" opacity={0.6} transform="rotate(-3 8 5)" />
+  </svg>
+);
 
 export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
   const [publicMatches, setPublicMatches] = useState<Match[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
-  const { user } = useAuth();
 
   useEffect(() => {
     loadPublicMatches();
@@ -23,13 +49,12 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
       const filtered = publicMatches.filter(match =>
-        match.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        match.teams.some(team => 
-          team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          team.players.some(player => 
-            player.name.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+        match.name.toLowerCase().includes(lower) ||
+        match.teams.some(team =>
+          team.name.toLowerCase().includes(lower) ||
+          team.players.some(player => player.name.toLowerCase().includes(lower))
         )
       );
       setFilteredMatches(filtered);
@@ -41,11 +66,6 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
   const loadPublicMatches = async () => {
     try {
       const matches = await getPublicMatches();
-      console.log('Fetched public matches raw:', JSON.stringify(matches, null, 2)); // Added log
-      console.log('Number of public matches fetched:', matches.length); // Added log
-      if (matches.length > 0) { // Added log
-        console.log('First public match isPublic value:', matches[0].isPublic);
-      }
       setPublicMatches(matches);
     } catch (error) {
       console.error('Error loading public matches:', error);
@@ -54,147 +74,209 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
     }
   };
 
-  const getWinnerInfo = (match: Match) => {
-    if (!match.winnerId) return null;
-    return match.teams.find(team => team.id === match.winnerId);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-100 via-blue-100 to-indigo-100">
-        <div className="absolute inset-0 bg-white/20 backdrop-blur-sm"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-400 to-blue-500 rounded-full mb-6 shadow-lg"
-            >
-              <Users className="w-10 h-10 text-white" />
-            </motion.div>
-            
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              Match Squad
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Create balanced teams, track matches, and discover amazing games from the community
-            </p>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-whiteboard)' }}>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onNavigate('players')}
-                className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid var(--color-line)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative">
+
+          {/* Whistle doodle — top right corner decoration */}
+          <div className="absolute top-8 right-8 hidden lg:block">
+            <WhistleDoodle />
+          </div>
+
+          <div className="grid grid-cols-12 gap-6 items-end">
+            {/* Headline — left 7 cols */}
+            <div className="col-span-12 lg:col-span-7">
+              <h1
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 'clamp(2.8rem, 6vw, 5rem)',
+                  lineHeight: 1.05,
+                  color: 'var(--color-ink)',
+                  maxWidth: '14ch',
+                  textTransform: 'lowercase',
+                }}
               >
-                <Plus className="w-5 h-5" />
-                <span>Create Players</span>
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onNavigate('teams')}
-                className="flex items-center space-x-2 px-8 py-4 bg-white/80 backdrop-blur-sm text-purple-700 rounded-full font-medium border border-purple-200 hover:bg-white transition-all"
+                today's match.
+              </h1>
+              <p
+                style={{
+                  fontFamily: 'var(--font-hand)',
+                  fontSize: '1rem',
+                  color: 'var(--color-ink-soft)',
+                  marginTop: '0.6rem',
+                  transform: 'rotate(-0.5deg)',
+                  display: 'inline-block',
+                }}
               >
-                <Users className="w-5 h-5" />
-                <span>Generate Teams</span>
-              </motion.button>
+                notes from the touchline.
+              </p>
+              <div className="flex gap-3 mt-6 flex-wrap">
+                <button
+                  onClick={() => onNavigate('players')}
+                  className="btn-marker"
+                  style={{ fontSize: '0.95rem' }}
+                >
+                  + add players
+                </button>
+                <button
+                  onClick={() => onNavigate('teams')}
+                  className="btn-marker-outline"
+                  style={{ fontSize: '0.95rem' }}
+                >
+                  generate teams
+                </button>
+              </div>
             </div>
-          </motion.div>
+
+            {/* Side caption — right 4 cols */}
+            <div className="col-span-12 lg:col-span-4 lg:pb-2 flex items-end gap-2">
+              <FootballSmall />
+              <p style={{ fontFamily: 'var(--font-hand)', fontSize: '0.9rem', color: 'var(--color-ink-soft)', maxWidth: '26ch', lineHeight: 1.4 }}>
+                skill-rated snake draft. drag players around. record the result.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
-            <input
-              type="text"
-              placeholder="Search matches, teams, or players..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white/80 backdrop-blur-sm border border-purple-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-transparent transition-all text-gray-700 placeholder-purple-400"
-            />
-          </div>
-        </motion.div>
-      </div>
+      {/* ── Match Feed ─────────────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
 
-      {/* Public Matches Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Public Matches</h2>
-              <p className="text-gray-600">Discover exciting matches from the community</p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Eye className="w-4 h-4" />
-              <span>{filteredMatches.length} matches</span>
-            </div>
-          </div>
+        {/* Section heading */}
+        <div className="section-heading mb-1" style={{ fontSize: '1.2rem' }}>on the board</div>
+        <p className="hand-caption mb-5" style={{ transform: 'rotate(-0.3deg)', display: 'inline-block' }}>
+          recent matches from the squad
+        </p>
 
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-8 h-8 border-4 border-purple-300 border-t-purple-600 rounded-full"
-              />
-            </div>
-          ) : filteredMatches.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16"
-            >
-              <div className="w-24 h-24 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trophy className="w-12 h-12 text-purple-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                {searchTerm ? 'No matches found' : 'No public matches yet'}
-              </h3>
-              <p className="text-gray-500 mb-6">
-                {searchTerm 
-                  ? 'Try adjusting your search terms' 
-                  : 'Be the first to create and share a match!'
-                }
-              </p>
-              {!searchTerm && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+        {/* Search */}
+        <div className="relative mb-6 max-w-xs">
+          <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--color-ink-soft)' }} />
+          <input
+            type="text"
+            placeholder="search matches, players…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-5 pr-2 py-1.5 text-sm bg-transparent focus:outline-none"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              borderBottom: '1.5px solid var(--color-line)',
+              color: 'var(--color-ink)',
+            }}
+            onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--color-ink)')}
+            onBlur={e => (e.currentTarget.style.borderBottomColor = 'var(--color-line)')}
+          />
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="py-12 flex justify-center">
+            <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--color-line)', borderTopColor: 'var(--color-ink)' }} />
+          </div>
+        ) : filteredMatches.length === 0 ? (
+          <div className="py-10">
+            <p style={{ fontFamily: 'var(--font-hand)', fontSize: '1.2rem', color: 'var(--color-ink-soft)', transform: 'rotate(-0.5deg)', display: 'inline-block' }}>
+              {searchTerm ? `nothing for "${searchTerm}".` : 'no matches on the board.'}
+            </p>
+            {!searchTerm && (
+              <div className="mt-4">
+                <button
                   onClick={() => onNavigate('teams')}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                  style={{
+                    fontFamily: 'var(--font-hand)',
+                    fontSize: '1rem',
+                    color: 'var(--color-ink-soft)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '3px',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
                 >
-                  Create Your First Match
-                </motion.button>
-              )}
-            </motion.div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMatches.map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-            </div>
-          )}
-        </motion.div>
+                  go play one →
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Index-card stack */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredMatches.map((match, idx) => {
+              const teamNames = match.teams.map(t => t.name);
+              const winnerTeam = match.teams.find(t => t.id === match.winnerId);
+              const rotation = idx % 3 === 1 ? 'rotate(0.6deg)' : idx % 3 === 2 ? 'rotate(-0.4deg)' : 'rotate(0deg)';
+              return (
+                <div
+                  key={match.id}
+                  className="index-card p-4 relative"
+                  style={{ transform: rotation }}
+                >
+                  <CardTape />
+                  {/* Date + match name */}
+                  <div className="flex items-start justify-between mb-2">
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-ink)', textTransform: 'lowercase' }}>
+                      {match.name}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--color-ink-soft)', flexShrink: 0, marginLeft: '0.5rem', marginTop: '2px' }}>
+                      {fmtDate(match.date)}
+                    </span>
+                  </div>
+
+                  {/* Teams */}
+                  <div className="space-y-1 mb-2">
+                    {teamNames.map((name, i) => {
+                      const isWinner = match.teams[i]?.id === match.winnerId;
+                      return (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              backgroundColor: i === 0 ? 'var(--color-blue)' : 'var(--color-red)',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-hand)',
+                              fontSize: '0.95rem',
+                              color: i === 0 ? 'var(--color-blue)' : 'var(--color-red)',
+                              fontWeight: isWinner ? 500 : 400,
+                            }}
+                          >
+                            {name}
+                            {isWinner && (
+                              <span style={{ color: 'var(--color-green)', marginLeft: '0.35rem', fontSize: '0.85rem' }}>✓</span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Status line */}
+                  <div style={{ fontFamily: 'var(--font-hand)', fontSize: '0.78rem', color: 'var(--color-ink-soft)' }}>
+                    {winnerTeam
+                      ? <span style={{ color: 'var(--color-green)' }}>{winnerTeam.name} won</span>
+                      : <span>in progress</span>
+                    }
+                    {match.creatorDisplayName && (
+                      <span style={{ marginLeft: '0.5rem' }}>· {match.creatorDisplayName}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

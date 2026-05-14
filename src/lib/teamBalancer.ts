@@ -23,19 +23,6 @@ const getCompositeScore = (player: Player): number => {
   return player.skillRating;
 };
 
-// Helper function to get best position for a player
-const getBestPosition = (player: Player): string => {
-  if (!player.positionSkills) return 'any';
-
-  const positions = {
-    goalkeeper: player.positionSkills.goalkeeper || 0,
-    defender: player.positionSkills.defender || 0,
-    midfield: player.positionSkills.midfield || 0,
-    forward: player.positionSkills.forward || 0,
-  };
-
-  return Object.entries(positions).reduce((a, b) => a[1] > b[1] ? a : b)[0];
-};
 
 export const generateBalancedTeams = (players: Player[], numTeams: number = 2): Team[] => {
   if (players.length < numTeams) {

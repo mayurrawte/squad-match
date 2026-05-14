@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase'; // Import Supabase client
-import { User } from '@supabase/supabase-js'; // Import User type from Supabase
+import { User as SupabaseUser } from '@supabase/supabase-js'; // Import User type from Supabase
 import { User } from '../types'; // Import application-specific User type
 
 // Helper function to map SupabaseUser to application-specific User
@@ -60,9 +60,10 @@ export const useAuth = () => {
         throw signInError;
       }
       // Supabase handles redirect and session update, onAuthStateChange will update user state
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sign-in failed. Please try again.';
       console.error('Google sign-in error:', err);
-      setError(err.message || 'Sign-in failed. Please try again.');
+      setError(message);
       setLoading(false);
     }
   };
@@ -76,9 +77,10 @@ export const useAuth = () => {
         throw signOutError;
       }
       setUser(null); // User will be set to null by onAuthStateChange as well
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sign-out failed. Please try again.';
       console.error('Sign out error:', err);
-      setError(err.message || 'Sign-out failed. Please try again.');
+      setError(message);
     } finally {
       setLoading(false);
     }

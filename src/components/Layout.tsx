@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Users, Trophy, Settings, LogOut, Home } from 'lucide-react';
-import { User } from 'firebase/auth';
+import { LogOut } from 'lucide-react';
+import { User } from '../types';
+import { InitialsAvatar } from './InitialsAvatar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,11 +13,25 @@ interface LayoutProps {
 }
 
 const tabs = [
-  { id: 'home', label: 'Home', icon: Home },
-  { id: 'players', label: 'Players', icon: Users },
-  { id: 'teams', label: 'Teams', icon: Settings },
-  { id: 'matches', label: 'Matches', icon: Trophy },
+  { id: 'home', label: 'home' },
+  { id: 'players', label: 'squad' },
+  { id: 'teams', label: 'teams' },
+  { id: 'matches', label: 'matches' },
 ];
+
+// Dynamic coach-note line: "wednesday — pitch 2 — 18:00"
+const now = new Date();
+const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+const COACH_NOTE = `${dayName} — pitch 2 — ${timeStr}`;
+
+// Inline SVG football doodle
+const FootballDoodle: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ display: 'inline', verticalAlign: 'middle', opacity: 0.75 }}>
+    <circle cx="12" cy="12" r="10" stroke="#1A1A1A" strokeWidth="1.8" fill="none" />
+    <polygon points="12,6 14,9.5 17.5,9.5 14.8,12 16,15.5 12,13.2 8,15.5 9.2,12 6.5,9.5 10,9.5" fill="none" stroke="#1A1A1A" strokeWidth="1.3" strokeLinejoin="round" />
+  </svg>
+);
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
@@ -28,126 +42,143 @@ export const Layout: React.FC<LayoutProps> = ({
   onSignOut,
 }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-purple-200 sticky top-0 z-40">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-whiteboard)', color: 'var(--color-ink)' }}>
+      {/* Header — whiteboard masthead */}
+      <header className="sticky top-0 z-40" style={{ backgroundColor: 'var(--color-whiteboard)', borderBottom: '1.5px solid var(--color-line)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-3"
-            >
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Match Squad
-              </h1>
-            </motion.div>
+          <div className="flex items-center justify-between h-14 gap-6">
 
-            {/* Auth Section */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-3"
+            {/* Wordmark — left: Kalam, slight rotation, football icon */}
+            <button
+              onClick={() => onTabChange('home')}
+              className="flex-shrink-0 flex items-center gap-1.5"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                fontSize: '1.35rem',
+                color: 'var(--color-ink)',
+                transform: 'rotate(-1deg)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                lineHeight: 1,
+              }}
             >
+              <FootballDoodle size={20} />
+              <span>match squad</span>
+            </button>
+
+            {/* Nav — Caveat handwritten, active = marker underline */}
+            <nav className="flex items-center gap-1 flex-1 justify-center">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className="px-3 py-1 transition-colors"
+                    style={{
+                      fontFamily: 'var(--font-hand)',
+                      fontSize: '1rem',
+                      color: isActive ? 'var(--color-ink)' : 'var(--color-ink-soft)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderBottom: isActive ? '2.5px solid var(--color-ink)' : '2.5px solid transparent',
+                      paddingBottom: '2px',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Auth + coach note — right */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Coach note — hidden on mobile */}
+              <span
+                className="hidden md:block"
+                style={{
+                  fontFamily: 'var(--font-hand)',
+                  fontSize: '0.78rem',
+                  color: 'var(--color-ink-soft)',
+                  transform: 'rotate(-0.5deg)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {COACH_NOTE}
+              </span>
+
               {user ? (
-                <div className="flex items-center space-x-3">
-                  {user.photoURL && (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName || 'User'}
-                      className="w-8 h-8 rounded-full border-2 border-purple-200"
-                    />
-                  )}
-                  <span className="text-sm font-medium text-gray-700">
-                    {user.displayName}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <InitialsAvatar
+                    name={user.displayName || user.email || 'User'}
+                    size={24}
+                    animate={false}
+                  />
                   <button
                     onClick={onSignOut}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-purple-100 rounded-lg transition-colors"
+                    className="p-1 transition-colors"
+                    style={{ color: 'var(--color-ink-soft)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
+                    title="Sign out"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ) : (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
                   onClick={onSignIn}
-                  className="group relative overflow-hidden px-6 py-2.5 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 400,
+                    fontSize: '0.9rem',
+                    color: 'var(--color-ink)',
+                    border: '1.5px solid var(--color-ink)',
+                    backgroundColor: 'transparent',
+                    padding: '0.2rem 0.75rem',
+                    cursor: 'pointer',
+                    borderRadius: 0,
+                    transition: 'background-color 0.1s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-ink)';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                    (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-ink)';
+                  }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="relative flex items-center space-x-2">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    <span>Sign in with Google</span>
-                  </div>
-                </motion.button>
+                  sign in
+                </button>
               )}
-            </motion.div>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation */}
-      <nav className="bg-white/60 backdrop-blur-sm border-b border-purple-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`relative flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'text-purple-600 border-b-2 border-purple-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
-      <main className={activeTab === 'home' ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}>
+      <main className={activeTab === 'home' ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full'}>
         {children}
       </main>
 
-      <footer className="bg-white/80 backdrop-blur-md border-t border-purple-200 mt-auto py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
-          <p>
-            Built with ❤️ by{' '}
-            <a
-              href="https://mayurrawte.github.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-600 hover:text-purple-800 font-medium"
-            >
-              Mayur Rawte
-            </a>
-          </p>
-          <p className="mt-1">and other amazing contributors.</p>
+      <footer className="mt-auto py-3" style={{ borderTop: '1px solid var(--color-line)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.8rem', color: 'var(--color-ink-soft)' }}>
+            notes from the touchline.
+          </span>
+          <a
+            href="https://mayurrawte.github.io/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: 'var(--font-hand)', fontSize: '0.8rem', color: 'var(--color-ink-soft)', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+          >
+            mayur rawte
+          </a>
         </div>
       </footer>
     </div>

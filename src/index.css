@@ -1,3 +1,182 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Kalam", cursive;
+  --font-hand: "Caveat", cursive;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  /* Colors — whiteboard + marker palette */
+  --color-whiteboard: #F2F4F0;
+  --color-card: #FBFAF2;
+  --color-pitch: #FAFBF7;
+  --color-ink: #1A1A1A;
+  --color-ink-soft: #6B6B63;
+  --color-line: #D8D9D0;
+  --color-blue: #1E40AF;
+  --color-red: #DC2626;
+  --color-green: #16A34A;
+  --color-yellow: #FACC15;
+
+  /* Keep --color-paper as alias for compat */
+  --color-paper: #F2F4F0;
+  --color-accent: #1A1A1A;
+  --color-accent-hover: #333333;
+
+  /* Border radii — sharp like cut card */
+  --radius-sm: 1px;
+  --radius-DEFAULT: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-full: 9999px;
+}
+
+/* Body defaults */
+body {
+  background-color: var(--color-whiteboard);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "tnum";
+}
+
+/* Whiteboard scuff overlay — very faint diagonal stripes */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 18px,
+    rgba(26,26,26,0.012) 18px,
+    rgba(26,26,26,0.012) 19px
+  );
+}
+
+/* Accessible focus rings */
+*:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Tabular numerics helper */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kalam display heading helper */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Caveat hand annotation helper */
+.font-hand {
+  font-family: var(--font-hand);
+}
+
+/* Index card — cream, subtle shadow, tiny rotation variant */
+.index-card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-line);
+  box-shadow: 1px 1px 0 var(--color-ink);
+  position: relative;
+}
+
+.index-card:nth-child(even) {
+  transform: rotate(0.5deg);
+}
+
+/* Marker button — black fill, Kalam label */
+.btn-marker {
+  background-color: var(--color-ink);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  border: none;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-marker:hover {
+  transform: rotate(1deg) translateY(-1px);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+}
+
+.btn-marker:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Outlined marker button */
+.btn-marker-outline {
+  background-color: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 400;
+  border: 1.5px solid var(--color-ink);
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease, transform 0.1s ease;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-marker-outline:hover {
+  background-color: var(--color-ink);
+  color: #fff;
+}
+
+/* Kalam section heading */
+.section-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-ink);
+  text-transform: lowercase;
+  line-height: 1.2;
+}
+
+/* Caveat caption — small hand annotation */
+.hand-caption {
+  font-family: var(--font-hand);
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
+}
+
+/* Yellow highlighter text effect */
+.highlight-yellow {
+  background: rgba(250,204,21,0.3);
+  padding: 0 0.15em;
+}
+
+/* Deprecated newspaper classes — neutered so old refs don't break layout */
+.pull-quote {
+  font-family: var(--font-hand);
+  font-size: 1rem;
+  color: var(--color-ink-soft);
+  margin: 0;
+}
+
+.drop-cap::first-letter {
+  /* removed */
+}
+
+.btn-rect {
+  border-radius: 0 !important;
+}

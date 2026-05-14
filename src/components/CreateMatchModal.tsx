@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy } from 'lucide-react';
 import { Team, Match, MatchType } from '../types';
 
 interface CreateMatchModalProps {
@@ -23,7 +22,7 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const match: Match = {
       id: Date.now().toString(),
       name: matchName.trim() || `Match - ${new Date().toLocaleDateString()}`,
@@ -35,8 +34,6 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
     };
 
     onCreateMatch(match);
-    
-    // Reset form
     setMatchName('');
     setWinnerId('');
     setIsPublic(false);
@@ -51,53 +48,59 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-lg overflow-hidden"
+            style={{ backgroundColor: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 0, boxShadow: '3px 3px 0 rgba(0,0,0,0.12)' }}
           >
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Trophy className="w-6 h-6 text-white" />
-                  <h2 className="text-xl font-semibold text-white">Create Match</h2>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-1 text-white hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-line)' }}>
+              <span className="section-heading" style={{ fontSize: '1.05rem' }}>+ new match</span>
+              <button
+                onClick={onClose}
+                className="font-mono text-base leading-none transition-colors"
+                style={{ color: 'var(--color-ink-soft)', background: 'none', border: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
+              >
+                ×
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-5 space-y-5">
+              {/* Match Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs uppercase tracking-wide font-medium mb-1.5" style={{ color: 'var(--color-ink-soft)' }}>
                   Match Name (optional)
                 </label>
                 <input
                   type="text"
                   value={matchName}
                   onChange={(e) => setMatchName(e.target.value)}
-                  placeholder="Enter match name or leave blank for auto-name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  placeholder="Leave blank for auto-name"
+                  className="w-full py-2 text-sm italic bg-transparent focus:outline-none"
+                  style={{ borderBottom: '1px solid var(--color-line)', color: 'var(--color-ink)' }}
+                  onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--color-ink)')}
+                  onBlur={e => (e.currentTarget.style.borderBottomColor = 'var(--color-line)')}
                 />
               </div>
 
+              {/* Match Type */}
               <div>
-                <label htmlFor="matchType" className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs uppercase tracking-wide font-medium mb-1.5" style={{ color: 'var(--color-ink-soft)' }}>
                   Match Type
                 </label>
                 <select
-                  id="matchType"
-                  name="matchType"
                   value={matchType}
                   onChange={(e) => setMatchType(e.target.value as MatchType)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full py-2 text-sm bg-transparent focus:outline-none"
+                  style={{ borderBottom: '1px solid var(--color-line)', color: 'var(--color-ink)', borderRadius: 0 }}
                 >
                   {Object.values(MatchType).map((type) => (
                     <option key={type} value={type}>
@@ -107,27 +110,29 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
                 </select>
               </div>
 
+              {/* Winner */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Select Winner (optional)
+                <label className="block text-xs uppercase tracking-wide font-medium mb-2" style={{ color: 'var(--color-ink-soft)' }}>
+                  Winner (optional)
                 </label>
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-3 p-2.5 cursor-pointer rounded" style={{ border: '1px solid var(--color-line)' }}>
                     <input
                       type="radio"
                       name="winner"
                       value=""
                       checked={winnerId === ''}
                       onChange={(e) => setWinnerId(e.target.value)}
-                      className="text-purple-600"
+                      style={{ accentColor: 'var(--color-accent)' }}
                     />
-                    <span className="text-gray-700">No winner yet</span>
+                    <span className="text-sm" style={{ color: 'var(--color-ink-soft)' }}>No winner yet</span>
                   </label>
-                  
+
                   {teams.map((team) => (
                     <label
                       key={team.id}
-                      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-3 p-2.5 cursor-pointer rounded"
+                      style={{ border: `1.5px solid ${winnerId === team.id ? 'var(--color-green)' : 'var(--color-line)'}` }}
                     >
                       <input
                         type="radio"
@@ -135,53 +140,38 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
                         value={team.id}
                         checked={winnerId === team.id}
                         onChange={(e) => setWinnerId(e.target.value)}
-                        className="text-purple-600"
+                        style={{ accentColor: 'var(--color-accent)' }}
                       />
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <span className="text-gray-700">{team.name}</span>
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
+                      <span className="text-sm" style={{ color: 'var(--color-ink)' }}>{team.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <input
-                    type="checkbox"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    className="text-purple-600"
-                  />
-                  <div>
-                    <span className="text-gray-700 font-medium">Make match public</span>
-                    <p className="text-sm text-gray-500">
-                      Public matches can be shared with others
-                    </p>
-                  </div>
-                </label>
-              </div>
+              {/* Public toggle */}
+              <label className="flex items-center gap-3 p-3 cursor-pointer rounded" style={{ border: '1px solid var(--color-line)' }}>
+                <input
+                  type="checkbox"
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  style={{ accentColor: 'var(--color-accent)' }}
+                />
+                <div>
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>Make match public</span>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-ink-soft)' }}>
+                    Visible on the community homepage
+                  </p>
+                </div>
+              </label>
 
-              <div className="flex space-x-3 pt-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-                >
-                  Create Match
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </motion.button>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={onClose} className="btn-marker-outline" style={{ fontSize: '0.85rem' }}>
+                  cancel
+                </button>
+                <button type="submit" className="btn-marker" style={{ fontSize: '0.85rem' }}>
+                  create match
+                </button>
               </div>
             </form>
           </motion.div>

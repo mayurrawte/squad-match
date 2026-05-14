@@ -8,7 +8,7 @@ export const localStorage_storage = {
   getPlayers: (): Player[] => {
     try {
       const data = localStorage.getItem(PLAYERS_KEY);
-      return data ? JSON.parse(data).map((p: any) => ({
+      return data ? JSON.parse(data).map((p: Record<string, unknown>) => ({
         ...p,
         createdAt: new Date(p.createdAt)
       })) : [];
@@ -25,7 +25,7 @@ export const localStorage_storage = {
   getMatches: (): Match[] => {
     try {
       const data = localStorage.getItem(MATCHES_KEY);
-      return data ? JSON.parse(data).map((m: any) => ({
+      return data ? JSON.parse(data).map((m: Record<string, unknown>) => ({
         ...m,
         date: new Date(m.date)
       })) : [];

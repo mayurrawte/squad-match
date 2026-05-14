@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shuffle, Users, Trophy, Star, Edit3 } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 import { Player, Team } from '../types';
 import { generateBalancedTeams, getTeamBalance } from '../lib/teamBalancer';
-import { generateRandomTeamName } from '../lib/nameGenerator'; // Added import
+import { generateRandomTeamName } from '../lib/nameGenerator';
 import { TeamEditor } from './TeamEditor';
+import { InitialsAvatar } from './InitialsAvatar';
 
 interface TeamGeneratorProps {
   players: Player[];
@@ -20,6 +21,7 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
   const [generatedTeams, setGeneratedTeams] = useState<Team[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTeamEditor, setShowTeamEditor] = useState(false);
+  const [teamEditorInitialMode, setTeamEditorInitialMode] = useState<'list' | 'pitch'>('list');
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayers(prev =>
@@ -31,16 +33,12 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
 
   const handleGenerateTeams = async () => {
     if (selectedPlayers.length < numTeams) return;
-
     setIsGenerating(true);
-    
-    // Add delay for animation effect
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const selectedPlayerObjs = players.filter(p => selectedPlayers.includes(p.id));
     let teams = generateBalancedTeams(selectedPlayerObjs, numTeams);
 
-    // Assign unique random names to teams
     const usedNames = new Set<string>();
     teams = teams.map(team => {
       let randomName;
@@ -50,7 +48,7 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
       usedNames.add(randomName);
       return { ...team, name: randomName };
     });
-    
+
     setGeneratedTeams(teams);
     setIsGenerating(false);
   };
@@ -71,74 +69,68 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
 
   return (
     <>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Player Selection */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center space-x-2">
-            <Users className="w-6 h-6 text-purple-600" />
-            <span>Select Players</span>
-          </h2>
+        <div className="p-5 index-card">
+          <div className="section-heading mb-5">select players</div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {players.map((player) => (
-              <motion.div
-                key={player.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handlePlayerToggle(player.id)}
-                className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  selectedPlayers.includes(player.id)
-                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={player.avatar}
-                    alt={player.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <h3 className="font-medium text-gray-900">{player.name}</h3>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-3 h-3 text-yellow-500" />
-                      <span className="text-sm text-gray-600">{player.skillRating}</span>
+          {players.length === 0 ? (
+            <p className="text-sm py-4" style={{ color: 'var(--color-ink-soft)' }}>No players yet. Add players first.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-5">
+              {players.map((player) => {
+                const isSelected = selectedPlayers.includes(player.id);
+                return (
+                  <div
+                    key={player.id}
+                    onClick={() => handlePlayerToggle(player.id)}
+                    className="flex items-center gap-3 p-3 cursor-pointer transition-colors"
+                    style={{
+                      border: `1.5px solid ${isSelected ? 'var(--color-blue)' : 'var(--color-line)'}`,
+                      backgroundColor: isSelected ? 'rgba(30,64,175,0.06)' : 'var(--color-card)',
+                      boxShadow: isSelected ? '1px 1px 0 var(--color-blue)' : 'none',
+                    }}
+                  >
+                    <InitialsAvatar name={player.name} size={32} animate={false} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate" style={{ color: 'var(--color-ink)' }}>{player.name}</div>
                     </div>
+                    <span className="font-mono text-sm tabular-nums flex-shrink-0" style={{ color: isSelected ? 'var(--color-blue)' : 'var(--color-ink-soft)' }}>
+                      {player.skillRating}
+                    </span>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Teams:</span>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-ink-soft)' }}>
+                <span className="text-xs uppercase tracking-wide font-medium">Teams</span>
                 <select
                   value={numTeams}
                   onChange={(e) => setNumTeams(Number(e.target.value))}
-                  className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="px-2 py-1 text-sm border rounded focus:outline-none"
+                  style={{ borderColor: 'var(--color-line)', color: 'var(--color-ink)', backgroundColor: '#fff' }}
                 >
                   <option value={2}>2</option>
                   <option value={3}>3</option>
                   <option value={4}>4</option>
                 </select>
               </label>
-              <span className="text-sm text-gray-600">
-                {selectedPlayers.length} players selected
+              <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-ink-soft)' }}>
+                {selectedPlayers.length} selected
               </span>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={handleGenerateTeams}
               disabled={selectedPlayers.length < numTeams || isGenerating}
-              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:from-purple-700 hover:to-blue-700 transition-all"
+              className="btn-marker"
             >
-              <Shuffle className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
-              <span>{isGenerating ? 'Generating...' : 'Generate Teams'}</span>
-            </motion.button>
+              {isGenerating ? 'generating…' : 'generate teams'}
+            </button>
           </div>
         </div>
 
@@ -146,89 +138,103 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
         <AnimatePresence>
           {generatedTeams.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="bg-white rounded-xl shadow-md p-6"
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="p-5 index-card"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-                  <Trophy className="w-6 h-6 text-purple-600" />
-                  <span>Generated Teams</span>
-                </h2>
-                
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-600">
-                    Balance: {balance.toFixed(1)} skill points
-                    <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                      balance <= 1 ? 'bg-purple-100 text-purple-800' :
-                      balance <= 2 ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {balance <= 1 ? 'Excellent' : balance <= 2 ? 'Good' : 'Fair'}
-                    </span>
-                  </div>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowTeamEditor(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-blue-600 transition-all"
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-4">
+                  <div className="section-heading">the teams</div>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-hand)',
+                      fontSize: '0.85rem',
+                      color: balance <= 1 ? 'var(--color-green)' : balance <= 2 ? '#92400E' : 'var(--color-ink-soft)',
+                    }}
                   >
-                    <Edit3 className="w-4 h-4" />
-                    <span>Edit Teams</span>
-                  </motion.button>
+                    {balance <= 1 ? '✓ well balanced' : balance <= 2 ? 'good balance' : 'fair balance'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <button
+                      onClick={() => { setTeamEditorInitialMode('pitch'); setShowTeamEditor(true); }}
+                      className="btn-marker"
+                      style={{ fontSize: '0.8rem' }}
+                    >
+                      tactics board →
+                    </button>
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.4 }}
+                      style={{
+                        fontFamily: 'var(--font-hand)',
+                        fontSize: '0.7rem',
+                        color: 'var(--color-ink-soft)',
+                        marginTop: '0.15rem',
+                        transform: 'rotate(-0.5deg)',
+                        display: 'inline-block',
+                      }}
+                    >
+                      see them on the pitch.
+                    </motion.span>
+                  </div>
+                  <button
+                    onClick={() => { setTeamEditorInitialMode('list'); setShowTeamEditor(true); }}
+                    className="btn-marker-outline"
+                    style={{ fontSize: '0.8rem', gap: '0.3rem' }}
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>edit teams</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
                 {generatedTeams.map((team, index) => (
                   <motion.div
                     key={team.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="border-2 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-blue-50"
-                    style={{ borderColor: team.color }}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.2 }}
+                    className="index-card"
+                    style={{ transform: index % 2 === 1 ? 'rotate(0.5deg)' : 'rotate(-0.3deg)' }}
                   >
-                    <div className="mb-4">
+                    {/* Team header */}
+                    <div className="px-4 py-3 flex items-baseline justify-between" style={{ borderBottom: '1px solid var(--color-line)' }}>
                       <input
                         type="text"
                         value={team.name}
                         onChange={(e) => handleTeamNameChange(team.id, e.target.value)}
-                        className="w-full text-lg font-semibold text-center border-none outline-none focus:bg-white/50 rounded px-2 py-1 bg-transparent"
-                        style={{ color: team.color }}
+                        className="bg-transparent border-none outline-none flex-1"
+                        style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: 'var(--color-ink)', textTransform: 'lowercase' }}
                       />
-                      <div className="text-center text-sm text-gray-600 mt-1">
-                        Avg Skill: {team.averageSkill}/10
+                      <div className="font-mono text-xl tabular-nums ml-3 leading-none flex-shrink-0" style={{ color: 'var(--color-ink)' }}>
+                        {team.averageSkill}
+                        <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.7rem', marginLeft: '0.2rem', color: 'var(--color-ink-soft)' }}>avg</span>
                       </div>
                     </div>
 
-                    <div className="space-y-3">
+                    {/* Players */}
+                    <div className="divide-y" style={{ borderColor: 'var(--color-line)' }}>
                       {team.players.map((player) => (
-                        <div key={player.id} className="flex items-center space-x-3">
-                          <img
-                            src={player.avatar}
-                            alt={player.name}
-                            className="w-8 h-8 rounded-full"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">{player.name}</div>
+                        <div key={player.id} className="flex items-center gap-2 px-4 py-2">
+                          <div className="flex-1 min-w-0">
+                            <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.9rem', color: 'var(--color-ink)' }}>{player.name.toLowerCase()}</span>
                             {player.positionSkills &&
-                             typeof player.positionSkills.goalkeeper === 'number' &&
-                             typeof player.positionSkills.defender === 'number' &&
-                             typeof player.positionSkills.midfield === 'number' &&
-                             typeof player.positionSkills.forward === 'number' ? (
-                              <div className="text-xs text-gray-500">
-                                GK:{player.positionSkills.goalkeeper} D:{player.positionSkills.defender} M:{player.positionSkills.midfield} F:{player.positionSkills.forward} (Avg: {((player.positionSkills.goalkeeper + player.positionSkills.defender + player.positionSkills.midfield + player.positionSkills.forward + player.skillRating)/5).toFixed(1)})
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-1">
-                                <Star className="w-3 h-3 text-yellow-500" />
-                                <span className="text-sm text-gray-600">{player.skillRating}</span>
-                              </div>
-                            )}
+                             typeof player.positionSkills.goalkeeper === 'number' ? (
+                              <span style={{ marginLeft: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-ink-soft)' }}>
+                                gk {player.positionSkills.goalkeeper} d {player.positionSkills.defender} m {player.positionSkills.midfield} f {player.positionSkills.forward}
+                              </span>
+                            ) : null}
                           </div>
+                          <span className="font-mono text-base tabular-nums flex-shrink-0" style={{ color: 'var(--color-ink)' }}>
+                            {player.skillRating}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -236,16 +242,14 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
                 ))}
               </div>
 
-              <div className="flex justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              <div className="flex justify-start">
+                <button
                   onClick={() => onCreateMatch(generatedTeams)}
-                  className="flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                  className="btn-marker"
+                  style={{ fontSize: '0.95rem' }}
                 >
-                  <Trophy className="w-5 h-5" />
-                  <span>Create Match</span>
-                </motion.button>
+                  + create match
+                </button>
               </div>
             </motion.div>
           )}
@@ -258,6 +262,7 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
             teams={generatedTeams}
             onTeamsUpdate={handleTeamsUpdate}
             onClose={() => setShowTeamEditor(false)}
+            initialViewMode={teamEditorInitialMode}
           />
         )}
       </AnimatePresence>

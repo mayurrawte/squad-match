@@ -11,7 +11,6 @@ import { CreateMatchModal } from './components/CreateMatchModal';
 import { useAuth } from './hooks/useAuth';
 import { useData } from './hooks/useData';
 import { Team, Match } from './types';
-import { Users, Trophy, Zap, Home } from 'lucide-react';
 import { updateMatch } from './lib/database'; // Updated import
 import toast from 'react-hot-toast';
 
@@ -97,12 +96,8 @@ function App() {
 
   if (authLoading || dataLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full"
-        />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-whiteboard)' }}>
+        <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--color-line)', borderTopColor: 'var(--color-ink)' }} />
       </div>
     );
   }
@@ -115,39 +110,35 @@ function App() {
       case 'players':
         return (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-5"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Players</h1>
-                <p className="text-gray-600 mt-1">
-                  Manage your squad and track player performance
-                </p>
+              <div className="section-heading flex-1 mr-6">
+                the squad
               </div>
               <AddPlayerForm onAdd={addPlayer} />
             </div>
 
             {players.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  No players yet
-                </h3>
-                <p className="text-gray-500">
-                  Add your first player to get started with team generation
+              <div className="py-10">
+                <p style={{ fontFamily: 'var(--font-hand)', fontSize: '1.15rem', color: 'var(--color-ink-soft)', transform: 'rotate(-0.5deg)', display: 'inline-block' }}>
+                  no players. add some.
                 </p>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                layout
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
+              <div>
+                {/* Header row */}
+                <div
+                  className="flex items-center gap-4 py-2 px-3"
+                  style={{ borderBottom: '1px solid var(--color-line)' }}
+                >
+                  <span className="font-mono text-[0.6rem] uppercase tracking-widest flex-1" style={{ color: 'var(--color-ink-soft)' }}>Player</span>
+                  <span className="font-mono text-[0.6rem] uppercase tracking-widest w-16 text-right" style={{ color: 'var(--color-ink-soft)' }}>Skill</span>
+                  <span className="font-mono text-[0.6rem] uppercase tracking-widest w-14 text-right hidden sm:block" style={{ color: 'var(--color-ink-soft)' }}>W/P</span>
+                  <span className="w-16" />
+                </div>
                 <AnimatePresence>
                   {players.map((player) => (
                     <PlayerCard
@@ -158,7 +149,7 @@ function App() {
                     />
                   ))}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             )}
           </motion.div>
         );
@@ -166,34 +157,23 @@ function App() {
       case 'teams':
         return (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Team Generator</h1>
-              <p className="text-gray-600 mt-1">
-                Create balanced teams based on player skill ratings
-              </p>
+            <div className="section-heading">
+              the teams
             </div>
 
             {players.length < 2 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <Zap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  Need more players
-                </h3>
-                <p className="text-gray-500">
-                  Add at least 2 players to start generating teams
+              <div className="py-10">
+                <p style={{ fontFamily: 'var(--font-hand)', fontSize: '1.15rem', color: 'var(--color-ink-soft)', transform: 'rotate(-0.4deg)', display: 'inline-block' }}>
+                  pick the squad first.
                 </p>
-              </motion.div>
+              </div>
             ) : (
-              <TeamGenerator 
-                players={players} 
+              <TeamGenerator
+                players={players}
                 onCreateMatch={handleCreateMatch}
               />
             )}
@@ -203,46 +183,35 @@ function App() {
       case 'matches':
         return (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-5"
           >
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Match History</h1>
-              <p className="text-gray-600 mt-1">
-                Track results and team performance over time
-              </p>
+            <div className="section-heading">
+              what we played
             </div>
 
             {matches.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  No matches yet
-                </h3>
-                <p className="text-gray-500">
-                  Generate teams and create your first match
+              <div className="py-10">
+                <p style={{ fontFamily: 'var(--font-hand)', fontSize: '1.15rem', color: 'var(--color-ink-soft)', transform: 'rotate(-0.4deg)', display: 'inline-block' }}>
+                  no games yet. go play.
                 </p>
-              </motion.div>
+              </div>
             ) : (
               <motion.div
                 layout
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-4"
               >
                 <AnimatePresence>
                   {matches
                     .sort((a, b) => b.date.getTime() - a.date.getTime())
                     .map((match) => (
-                      <MatchCard 
-                        key={match.id} 
+                      <MatchCard
+                        key={match.id}
                         match={match}
                         onUpdateMatch={handleUpdateMatch}
                         showUpdateButton={true}
-                        onUpdateMatchTeams={handleMatchTeamsChange} // Step 2.5: Pass function to MatchCard
+                        onUpdateMatchTeams={handleMatchTeamsChange}
                       />
                     ))}
                 </AnimatePresence>

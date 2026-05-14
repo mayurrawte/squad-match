@@ -8,7 +8,7 @@ const MATCHES_TABLE = 'matches';
 // Players
 export const addPlayer = async (player: Player, userId: string): Promise<string> => {
   try {
-    const { id, ...playerData } = player; // Destructure to remove client-side id
+    const { id: _id, ...playerData } = player; // Destructure to remove client-side id
     const { data, error } = await supabase
       .from(PLAYERS_TABLE)
       .insert({
@@ -87,7 +87,7 @@ export const deletePlayer = async (playerId: string): Promise<void> => {
 // Matches
 export const addMatch = async (match: Match, userId: string): Promise<string> => {
   try {
-    const { id, ...matchData } = match; // Exclude client-generated id if present
+    const { id: _id, ...matchData } = match; // Exclude client-generated id if present
     const matchDataForSupabase = {
       ...matchData,
       userId, // Ensure userId is set for the record
@@ -159,7 +159,8 @@ export const getPublicMatches = async (limitCount: number = 50): Promise<Match[]
       // For now, just log and continue, creatorDisplayName will be undefined
     }
 
-    return data ? data.map((m: any) => {
+    type MatchRow = Record<string, unknown> & { profiles?: { displayName?: string } };
+    return data ? data.map((m: MatchRow) => {
       // Supabase returns related records as an object or an array of objects.
       // If 'profiles' is a one-to-one relation, m.profile will be an object.
       const creatorDisplayName = m.profiles?.displayName || undefined; // Use optional chaining
@@ -181,7 +182,7 @@ export const getPublicMatches = async (limitCount: number = 50): Promise<Match[]
 
 export const updateMatch = async (matchId: string, updates: Partial<Match>): Promise<void> => {
   try {
-    const updateDataSupabase: any = { ...updates };
+    const updateDataSupabase: Record<string, unknown> = { ...updates };
 
     if (updates.date && updates.date instanceof Date) {
       updateDataSupabase.date = updates.date.toISOString();
@@ -195,11 +196,11 @@ export const updateMatch = async (matchId: string, updates: Partial<Match>): Pro
     // If winnerId is explicitly undefined, Supabase client typically sets it to null.
     // If it's part of the updates object with a value, it will be updated.
     // If not in updates, it remains unchanged.
-    if (updates.hasOwnProperty('winnerId')) {
+    if (Object.prototype.hasOwnProperty.call(updates, 'winnerId')) {
         updateDataSupabase.winnerId = updates.winnerId === undefined ? null : updates.winnerId;
     }
 
-    if (updates.hasOwnProperty('matchType')) {
+    if (Object.prototype.hasOwnProperty.call(updates, 'matchType')) {
         updateDataSupabase.matchType = updates.matchType === undefined ? null : updates.matchType;
     }
 

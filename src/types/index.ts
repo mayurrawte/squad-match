@@ -1,8 +1,11 @@
+export type Position = 'GK' | 'DEF' | 'MID' | 'FWD';
+
 export interface Player {
   id: string;
   name: string;
   skillRating: number;
   positionSkills?: { [key: string]: number }; // e.g., { "forward": 5, "midfield": 4 }
+  positions?: Position[]; // ordered: primary first, then secondary/tertiary
   sport?: MatchType; // The sport this player is associated with
   avatar: string;
   wins: number;
@@ -38,8 +41,6 @@ export enum MatchType {
   Badminton = "badminton",
   Other = "other",
 }
-
-import { User as SupabaseUser } from '@supabase/supabase-js'; // Keep this for internal hook use
 
 // Application-specific User type
 export interface User {

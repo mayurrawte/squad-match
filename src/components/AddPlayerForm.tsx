@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, UserPlus } from 'lucide-react';
-import { Player, MatchType } from '../types';
+import { Player, MatchType, Position } from '../types';
 import { generateAvatar } from '../lib/avatars';
+
+const ALL_POSITIONS: Position[] = ['GK', 'DEF', 'MID', 'FWD'];
+const MAX_POSITIONS = 3;
 
 interface AddPlayerFormProps {
   onAdd: (player: Player) => void;
@@ -17,8 +19,18 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
   const [defenderSkill, setDefenderSkill] = useState(5);
   const [midfieldSkill, setMidfieldSkill] = useState(5);
   const [forwardSkill, setForwardSkill] = useState(5);
+  const [selectedPositions, setSelectedPositions] = useState<Position[]>([]);
 
-  // Auto-calculate overall rating for football based on position skills
+  const handlePositionChipClick = (pos: Position) => {
+    setSelectedPositions(prev => {
+      if (prev.includes(pos)) {
+        return prev.filter(p => p !== pos);
+      }
+      if (prev.length >= MAX_POSITIONS) return prev;
+      return [...prev, pos];
+    });
+  };
+
   useEffect(() => {
     if (sport === MatchType.Football) {
       const avgRating = (goalkeeperSkill + defenderSkill + midfieldSkill + forwardSkill) / 4;
@@ -43,6 +55,7 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
           forward: forwardSkill,
         },
       }),
+      ...(selectedPositions.length > 0 && { positions: selectedPositions }),
       avatar: generateAvatar(name),
       wins: 0,
       matchesPlayed: 0,
@@ -57,6 +70,7 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     setDefenderSkill(5);
     setMidfieldSkill(5);
     setForwardSkill(5);
+    setSelectedPositions([]);
     setIsOpen(false);
   };
 
@@ -68,20 +82,28 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     setDefenderSkill(5);
     setMidfieldSkill(5);
     setForwardSkill(5);
+    setSelectedPositions([]);
     setIsOpen(false);
   };
 
+  const sportOptions = [
+    { value: MatchType.Football, label: 'Football' },
+    { value: MatchType.Basketball, label: 'Basketball' },
+    { value: MatchType.Volleyball, label: 'Volleyball' },
+    { value: MatchType.Tennis, label: 'Tennis' },
+    { value: MatchType.Badminton, label: 'Badminton' },
+    { value: MatchType.Other, label: 'Other' },
+  ];
+
   return (
     <>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+      <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+        className="btn-marker"
+        style={{ fontSize: '0.9rem' }}
       >
-        <Plus className="w-5 h-5" />
-        <span className="font-medium">Add Player</span>
-      </motion.button>
+        + new player
+      </button>
 
       <AnimatePresence>
         {isOpen && (
@@ -89,24 +111,35 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-md overflow-hidden"
+              style={{ backgroundColor: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 0, boxShadow: '3px 3px 0 rgba(0,0,0,0.12)' }}
             >
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-                <div className="flex items-center space-x-3">
-                  <UserPlus className="w-6 h-6 text-white" />
-                  <h2 className="text-xl font-semibold text-white">Add New Player</h2>
-                </div>
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-line)' }}>
+                <span className="section-heading" style={{ fontSize: '1.05rem' }}>+ new player</span>
+                <button
+                  onClick={handleCancel}
+                  className="font-mono text-base leading-none transition-colors"
+                  style={{ color: 'var(--color-ink-soft)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
+                >
+                  ×
+                </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <form onSubmit={handleSubmit} className="p-5 space-y-5">
+                {/* Player Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs uppercase tracking-wide font-medium mb-1.5" style={{ color: 'var(--color-ink-soft)' }}>
                     Player Name
                   </label>
                   <input
@@ -114,150 +147,160 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter player name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full py-2 text-sm bg-transparent focus:outline-none"
+                    style={{ borderBottom: '1px solid var(--color-line)', color: 'var(--color-ink)' }}
+                    onFocus={e => (e.currentTarget.style.borderBottomColor = 'var(--color-ink)')}
+                    onBlur={e => (e.currentTarget.style.borderBottomColor = 'var(--color-line)')}
                     required
                   />
                 </div>
 
+                {/* Sport */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sport / Game
+                  <label className="block text-xs uppercase tracking-wide font-medium mb-1.5" style={{ color: 'var(--color-ink-soft)' }}>
+                    Sport
                   </label>
                   <select
                     value={sport}
                     onChange={(e) => setSport(e.target.value as MatchType)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full py-2 text-sm bg-transparent focus:outline-none"
+                    style={{ borderBottom: '1px solid var(--color-line)', color: 'var(--color-ink)', borderRadius: 0 }}
                   >
-                    <option value={MatchType.Football}>⚽ Football</option>
-                    <option value={MatchType.Basketball}>🏀 Basketball</option>
-                    <option value={MatchType.Volleyball}>🏐 Volleyball</option>
-                    <option value={MatchType.Tennis}>🎾 Tennis</option>
-                    <option value={MatchType.Badminton}>🏸 Badminton</option>
-                    <option value={MatchType.Other}>🎯 Other</option>
+                    {sportOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                 </div>
 
+                {/* Skill Rating — non-football */}
                 {sport !== MatchType.Football && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Skill Rating: {skillRating}/10
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--color-ink-soft)' }}>
+                        Skill Rating
+                      </label>
+                      <span className="font-mono text-base tabular-nums font-medium" style={{ color: 'var(--color-ink)' }}>
+                        {skillRating}<span className="text-xs font-sans" style={{ color: 'var(--color-ink-soft)' }}>/10</span>
+                      </span>
+                    </div>
                     <input
                       type="range"
                       min="1"
                       max="10"
                       value={skillRating}
                       onChange={(e) => setSkillRating(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      className="w-full"
                     />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--color-ink-soft)' }}>
                       <span>Beginner</span>
                       <span>Expert</span>
                     </div>
                   </div>
                 )}
 
-                {/* Positional Skills Inputs - Football Positions */}
+                {/* Football positional skills */}
                 {sport === MatchType.Football && (
-                  <div className="space-y-4 border-t pt-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-                        <span className="mr-2">⚽</span>
-                        Football Position Skills
-                      </h3>
-                      <span className="text-xs font-medium text-purple-600">
+                  <div className="space-y-3 pt-1" style={{ borderTop: '1px solid var(--color-line)' }}>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--color-ink-soft)' }}>
+                        Position Skills
+                      </span>
+                      <span className="font-mono text-sm tabular-nums" style={{ color: 'var(--color-ink)' }}>
                         Overall: {skillRating}/10
                       </span>
                     </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-gray-700 flex items-center">
-                        <span className="mr-2">🧤</span>Goalkeeper
-                      </label>
-                      <span className="text-sm font-bold text-purple-600">{goalkeeperSkill}/10</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={goalkeeperSkill}
-                      onChange={(e) => setGoalkeeperSkill(Number(e.target.value))}
-                      className="w-full h-2 bg-gradient-to-r from-gray-200 to-purple-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-gray-700 flex items-center">
-                        <span className="mr-2">🛡️</span>Defender
-                      </label>
-                      <span className="text-sm font-bold text-purple-600">{defenderSkill}/10</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={defenderSkill}
-                      onChange={(e) => setDefenderSkill(Number(e.target.value))}
-                      className="w-full h-2 bg-gradient-to-r from-gray-200 to-blue-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-gray-700 flex items-center">
-                        <span className="mr-2">⚡</span>Midfielder
-                      </label>
-                      <span className="text-sm font-bold text-purple-600">{midfieldSkill}/10</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={midfieldSkill}
-                      onChange={(e) => setMidfieldSkill(Number(e.target.value))}
-                      className="w-full h-2 bg-gradient-to-r from-gray-200 to-cyan-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-gray-700 flex items-center">
-                        <span className="mr-2">🎯</span>Forward
-                      </label>
-                      <span className="text-sm font-bold text-purple-600">{forwardSkill}/10</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={forwardSkill}
-                      onChange={(e) => setForwardSkill(Number(e.target.value))}
-                      className="w-full h-2 bg-gradient-to-r from-gray-200 to-green-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                  </div>
+                    {[
+                      { label: 'Goalkeeper', abbr: 'GK', val: goalkeeperSkill, set: setGoalkeeperSkill },
+                      { label: 'Defender', abbr: 'DEF', val: defenderSkill, set: setDefenderSkill },
+                      { label: 'Midfielder', abbr: 'MID', val: midfieldSkill, set: setMidfieldSkill },
+                      { label: 'Forward', abbr: 'FWD', val: forwardSkill, set: setForwardSkill },
+                    ].map(({ label, abbr, val, set }) => (
+                      <div key={abbr}>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs" style={{ color: 'var(--color-ink)' }}>{label}</label>
+                          <span className="font-mono text-xs tabular-nums" style={{ color: 'var(--color-ink-soft)' }}>{val}/10</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={val}
+                          onChange={(e) => set(Number(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                <div className="flex space-x-3 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-                  >
-                    Add Player
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={handleCancel}
-                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                  >
-                    Cancel
-                  </motion.button>
+                {/* Position chip selector */}
+                <div style={{ borderTop: '1px solid var(--color-line)', paddingTop: '0.75rem' }}>
+                  <div className="section-heading mb-2" style={{ fontSize: '0.85rem' }}>positions (optional)</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {ALL_POSITIONS.map((pos) => {
+                      const orderIdx = selectedPositions.indexOf(pos);
+                      const isSelected = orderIdx >= 0;
+                      return (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => handlePositionChipClick(pos)}
+                          style={{
+                            position: 'relative',
+                            padding: '0.3rem 0.75rem',
+                            fontFamily: 'var(--font-display)',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            border: `1.5px solid ${isSelected ? '#1A1A1A' : 'var(--color-line)'}`,
+                            backgroundColor: isSelected ? '#1A1A1A' : 'var(--color-card)',
+                            color: isSelected ? '#fff' : 'var(--color-ink)',
+                            borderRadius: 0,
+                            transition: 'all 0.12s',
+                          }}
+                        >
+                          {pos}
+                          {isSelected && (
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                fontFamily: 'var(--font-hand)',
+                                fontSize: '0.65rem',
+                                backgroundColor: '#FACC15',
+                                color: '#1A1A1A',
+                                borderRadius: '50%',
+                                width: 16,
+                                height: 16,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {orderIdx + 1}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedPositions.length === 0 && (
+                    <p style={{ fontFamily: 'var(--font-hand)', fontSize: '0.75rem', color: 'var(--color-ink-soft)', marginTop: '0.35rem' }}>
+                      tap in order — primary first.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={handleCancel} className="btn-marker-outline" style={{ fontSize: '0.85rem' }}>
+                    cancel
+                  </button>
+                  <button type="submit" className="btn-marker" style={{ fontSize: '0.85rem' }}>
+                    add player
+                  </button>
                 </div>
               </form>
             </motion.div>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Save } from 'lucide-react';
-import { Team, Match } from '../types';
+import { Match } from '../types';
 
 interface UpdateMatchModalProps {
   isOpen: boolean;
@@ -31,58 +30,61 @@ export const UpdateMatchModal: React.FC<UpdateMatchModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-lg overflow-hidden"
+            style={{ backgroundColor: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 0, boxShadow: '3px 3px 0 rgba(0,0,0,0.12)' }}
           >
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Trophy className="w-6 h-6 text-white" />
-                  <h2 className="text-xl font-semibold text-white">Update Match Result</h2>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-1 text-white hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--color-line)' }}>
+              <span className="section-heading" style={{ fontSize: '1.05rem' }}>result?</span>
+              <button
+                onClick={onClose}
+                className="font-mono text-base leading-none transition-colors"
+                style={{ color: 'var(--color-ink-soft)', background: 'none', border: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
+              >
+                ×
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-5 space-y-5">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-1">{match.name}</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="text-sm font-semibold mb-0.5" style={{ color: 'var(--color-ink)' }}>{match.name}</h3>
+                <p className="text-xs" style={{ color: 'var(--color-ink-soft)' }}>
                   Select the winning team or mark as no winner
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-xs uppercase tracking-wide font-medium mb-2" style={{ color: 'var(--color-ink-soft)' }}>
                   Match Result
                 </label>
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-3 p-2.5 cursor-pointer rounded" style={{ border: '1px solid var(--color-line)' }}>
                     <input
                       type="radio"
                       name="winner"
                       value=""
                       checked={winnerId === ''}
                       onChange={(e) => setWinnerId(e.target.value)}
-                      className="text-purple-600"
+                      style={{ accentColor: 'var(--color-accent)' }}
                     />
-                    <span className="text-gray-700">No winner / Draw</span>
+                    <span className="text-sm" style={{ color: 'var(--color-ink-soft)' }}>No winner / Draw</span>
                   </label>
-                  
+
                   {match.teams.map((team) => (
                     <label
                       key={team.id}
-                      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      className="flex items-start gap-3 p-2.5 cursor-pointer rounded"
+                      style={{ border: `1.5px solid ${winnerId === team.id ? 'var(--color-green)' : 'var(--color-line)'}` }}
                     >
                       <input
                         type="radio"
@@ -90,15 +92,12 @@ export const UpdateMatchModal: React.FC<UpdateMatchModalProps> = ({
                         value={team.id}
                         checked={winnerId === team.id}
                         onChange={(e) => setWinnerId(e.target.value)}
-                        className="text-purple-600"
+                        style={{ accentColor: 'var(--color-accent)', marginTop: 2 }}
                       />
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: team.color }}
-                      />
-                      <div className="flex-1">
-                        <span className="text-gray-700 font-medium">{team.name}</span>
-                        <div className="text-sm text-gray-500">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: team.color }} />
+                      <div>
+                        <span className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>{team.name}</span>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--color-ink-soft)' }}>
                           {team.players.map(p => p.name).join(', ')}
                         </div>
                       </div>
@@ -107,25 +106,13 @@ export const UpdateMatchModal: React.FC<UpdateMatchModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-4">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Update Result</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                >
-                  Cancel
-                </motion.button>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={onClose} className="btn-marker-outline" style={{ fontSize: '0.85rem' }}>
+                  cancel
+                </button>
+                <button type="submit" className="btn-marker" style={{ fontSize: '0.85rem' }}>
+                  save result
+                </button>
               </div>
             </form>
           </motion.div>
