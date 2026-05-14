@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
 import { Match, MatchType, Team } from '../types';
 import { UpdateMatchModal } from './UpdateMatchModal';
 import { TeamEditor } from './TeamEditor';
 import { useAuth } from '../hooks/useAuth';
+import { QrModal } from './QrModal';
+import { buildMatchUrl, buildWhatsAppUrl } from '../lib/share';
 
 interface MatchCardProps {
   match: Match;
@@ -33,6 +35,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showTeamEditorModal, setShowTeamEditorModal] = useState(false);
   const [teamEditorInitialMode, setTeamEditorInitialMode] = useState<'list' | 'pitch'>('list');
+  const [showQr, setShowQr] = useState(false);
   const { user } = useAuth();
 
   const canUpdate = showUpdateButton && user && match.createdBy === user.id && onUpdateMatch;
@@ -69,9 +72,58 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: 'var(--color-ink)', textTransform: 'lowercase' }}>
               {match.name}
             </span>
-            <div style={{ fontFamily: 'var(--font-hand)', fontSize: '0.78rem', color: 'var(--color-ink-soft)', marginTop: '1px' }}>
-              {fmtDate(match.date)}
-              {match.creatorDisplayName && ` · ${match.creatorDisplayName}`}
+            <div style={{ fontFamily: 'var(--font-hand)', fontSize: '0.78rem', color: 'var(--color-ink-soft)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <span>{fmtDate(match.date)}</span>
+              {match.creatorDisplayName && <span>· {match.creatorDisplayName}</span>}
+              {match.isPublic && (
+                <>
+                  <button
+                    onClick={() => setShowQr(true)}
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      fontSize: '0.78rem',
+                      color: 'var(--color-ink-soft)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                      opacity: 0.7,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
+                    title="share via qr"
+                  >
+                    ↗ qr
+                  </button>
+                  <button
+                    onClick={() => {
+                      const matchUrl = buildMatchUrl(match.id);
+                      const teamNames = match.teams.map(t => t.name).join(' v ');
+                      const caption = `match no.${match.id.slice(-4)} · ${teamNames}`;
+                      window.open(buildWhatsAppUrl(caption + '\n' + matchUrl), '_blank', 'noopener');
+                    }}
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      fontSize: '0.78rem',
+                      color: 'var(--color-ink-soft)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      textUnderlineOffset: '2px',
+                      opacity: 0.7,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
+                    title="share on whatsapp"
+                  >
+                    ↗ whatsapp
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
@@ -103,6 +155,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <div className="space-y-1.5 mb-3">
           {match.teams.map((team, i) => {
             const isWinner = team.id === match.winnerId;
+            const hasBibs = match.bibsTeam === i;
             return (
               <div key={team.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -129,6 +182,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                       <span style={{ color: 'var(--color-green)', marginLeft: '0.35rem' }}>✓</span>
                     )}
                   </span>
+                  {hasBibs && (
+                    <span style={{
+                      fontFamily: 'var(--font-hand)',
+                      fontSize: '0.62rem',
+                      backgroundColor: '#FACC15',
+                      color: '#92400E',
+                      padding: '0.02rem 0.3rem',
+                      letterSpacing: '0.04em',
+                      marginLeft: '0.2rem',
+                    }}>
+                      BIBS
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--color-ink-soft)' }}>
                   {team.players.length}p · {team.averageSkill} avg
@@ -224,6 +290,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           initialViewMode={teamEditorInitialMode}
         />
       )}
+
+      <AnimatePresence>
+        {showQr && (
+          <QrModal
+            key="match-card-qr"
+            data={buildMatchUrl(match.id)}
+            title="scan to view match"
+            onClose={() => setShowQr(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

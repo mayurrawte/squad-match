@@ -31,6 +31,7 @@ export interface Match {
   createdBy?: string;
   creatorDisplayName?: string; // Added for creator's display name
   matchType?: MatchType;
+  bibsTeam?: 0 | 1 | null;
 }
 
 export enum MatchType {

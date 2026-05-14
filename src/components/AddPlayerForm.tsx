@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Player, MatchType, Position } from '../types';
 import { generateAvatar } from '../lib/avatars';
@@ -15,10 +15,6 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
   const [name, setName] = useState('');
   const [sport, setSport] = useState<MatchType>(MatchType.Football);
   const [skillRating, setSkillRating] = useState(5);
-  const [goalkeeperSkill, setGoalkeeperSkill] = useState(5);
-  const [defenderSkill, setDefenderSkill] = useState(5);
-  const [midfieldSkill, setMidfieldSkill] = useState(5);
-  const [forwardSkill, setForwardSkill] = useState(5);
   const [selectedPositions, setSelectedPositions] = useState<Position[]>([]);
 
   const handlePositionChipClick = (pos: Position) => {
@@ -31,13 +27,6 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     });
   };
 
-  useEffect(() => {
-    if (sport === MatchType.Football) {
-      const avgRating = (goalkeeperSkill + defenderSkill + midfieldSkill + forwardSkill) / 4;
-      setSkillRating(Math.round(avgRating));
-    }
-  }, [sport, goalkeeperSkill, defenderSkill, midfieldSkill, forwardSkill]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -47,14 +36,6 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
       name: name.trim(),
       skillRating,
       sport,
-      ...(sport === MatchType.Football && {
-        positionSkills: {
-          goalkeeper: goalkeeperSkill,
-          defender: defenderSkill,
-          midfield: midfieldSkill,
-          forward: forwardSkill,
-        },
-      }),
       ...(selectedPositions.length > 0 && { positions: selectedPositions }),
       avatar: generateAvatar(name),
       wins: 0,
@@ -66,10 +47,6 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     setName('');
     setSport(MatchType.Football);
     setSkillRating(5);
-    setGoalkeeperSkill(5);
-    setDefenderSkill(5);
-    setMidfieldSkill(5);
-    setForwardSkill(5);
     setSelectedPositions([]);
     setIsOpen(false);
   };
@@ -78,10 +55,6 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
     setName('');
     setSport(MatchType.Football);
     setSkillRating(5);
-    setGoalkeeperSkill(5);
-    setDefenderSkill(5);
-    setMidfieldSkill(5);
-    setForwardSkill(5);
     setSelectedPositions([]);
     setIsOpen(false);
   };
@@ -172,67 +145,29 @@ export const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onAdd }) => {
                   </select>
                 </div>
 
-                {/* Skill Rating — non-football */}
-                {sport !== MatchType.Football && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--color-ink-soft)' }}>
-                        Skill Rating
-                      </label>
-                      <span className="font-mono text-base tabular-nums font-medium" style={{ color: 'var(--color-ink)' }}>
-                        {skillRating}<span className="text-xs font-sans" style={{ color: 'var(--color-ink-soft)' }}>/10</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={skillRating}
-                      onChange={(e) => setSkillRating(Number(e.target.value))}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--color-ink-soft)' }}>
-                      <span>Beginner</span>
-                      <span>Expert</span>
-                    </div>
+                {/* Skill Rating */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--color-ink-soft)' }}>
+                      Skill Rating
+                    </label>
+                    <span className="font-mono text-base tabular-nums font-medium" style={{ color: 'var(--color-ink)' }}>
+                      {skillRating}<span className="text-xs font-sans" style={{ color: 'var(--color-ink-soft)' }}>/10</span>
+                    </span>
                   </div>
-                )}
-
-                {/* Football positional skills */}
-                {sport === MatchType.Football && (
-                  <div className="space-y-3 pt-1" style={{ borderTop: '1px solid var(--color-line)' }}>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-xs uppercase tracking-wide font-medium" style={{ color: 'var(--color-ink-soft)' }}>
-                        Position Skills
-                      </span>
-                      <span className="font-mono text-sm tabular-nums" style={{ color: 'var(--color-ink)' }}>
-                        Overall: {skillRating}/10
-                      </span>
-                    </div>
-
-                    {[
-                      { label: 'Goalkeeper', abbr: 'GK', val: goalkeeperSkill, set: setGoalkeeperSkill },
-                      { label: 'Defender', abbr: 'DEF', val: defenderSkill, set: setDefenderSkill },
-                      { label: 'Midfielder', abbr: 'MID', val: midfieldSkill, set: setMidfieldSkill },
-                      { label: 'Forward', abbr: 'FWD', val: forwardSkill, set: setForwardSkill },
-                    ].map(({ label, abbr, val, set }) => (
-                      <div key={abbr}>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-xs" style={{ color: 'var(--color-ink)' }}>{label}</label>
-                          <span className="font-mono text-xs tabular-nums" style={{ color: 'var(--color-ink-soft)' }}>{val}/10</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={val}
-                          onChange={(e) => set(Number(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                    ))}
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={skillRating}
+                    onChange={(e) => setSkillRating(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--color-ink-soft)' }}>
+                    <span>Beginner</span>
+                    <span>Expert</span>
                   </div>
-                )}
+                </div>
 
                 {/* Position chip selector */}
                 <div style={{ borderTop: '1px solid var(--color-line)', paddingTop: '0.75rem' }}>

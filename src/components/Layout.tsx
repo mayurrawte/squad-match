@@ -10,6 +10,7 @@ interface LayoutProps {
   user: User | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  onScanQr?: () => void;
 }
 
 const tabs = [
@@ -40,6 +41,7 @@ export const Layout: React.FC<LayoutProps> = ({
   user,
   onSignIn,
   onSignOut,
+  onScanQr,
 }) => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-whiteboard)', color: 'var(--color-ink)' }}>
@@ -97,6 +99,27 @@ export const Layout: React.FC<LayoutProps> = ({
 
             {/* Auth + coach note — right */}
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Scan QR button */}
+              {onScanQr && (
+                <button
+                  onClick={onScanQr}
+                  style={{
+                    fontFamily: 'var(--font-hand)',
+                    fontSize: '0.88rem',
+                    color: 'var(--color-ink-soft)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.1rem 0.2rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-ink)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-ink-soft)')}
+                  title="scan a QR code"
+                >
+                  scan
+                </button>
+              )}
               {/* Coach note — hidden on mobile */}
               <span
                 className="hidden md:block"

@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { AnimatePresence } from 'framer-motion';
+import { QrModal } from './QrModal';
+import { buildMatchUrl, encodeMatchPayload, shareNative } from '../lib/share';
+import type { Match } from '../types';
 import {
   DndContext,
   PointerSensor,
@@ -9,7 +14,7 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from '@dnd-kit/core';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Team, Player, Position } from '../types';
 import {
   FORMATIONS,
@@ -32,13 +37,14 @@ function isInPosition(player: Player, role: LineRole): boolean {
 }
 
 /** Greedy fill: for each role priority [GK,DEF,MID,ATT], pick best-fit player */
-function buildGreedyState(team: Team, formationName: string): { slots: Array<{ playerId: string | null; isOutOfPosition: boolean }>; bench: string[] } {
+function buildGreedyState(team: Team, formationName: string, rotationOffset: number = 0): { slots: Array<{ playerId: string | null; isOutOfPosition: boolean }>; bench: string[] } {
   const formation = FORMATIONS[formationName];
   const slots: Array<{ playerId: string | null; isOutOfPosition: boolean }> = formation.slots.map(() => ({ playerId: null, isOutOfPosition: false }));
   const unplaced = [...team.players];
 
   const rolePriority: LineRole[] = ['GK', 'DEF', 'MID', 'ATT'];
 
+  // Pass 1: fill tagged players (primary → secondary/tertiary)
   for (const role of rolePriority) {
     const roleSlotIndices = formation.slots
       .map((slot, i) => ({ slot, i }))
@@ -48,28 +54,23 @@ function buildGreedyState(team: Team, formationName: string): { slots: Array<{ p
     for (const si of roleSlotIndices) {
       if (unplaced.length === 0) break;
 
-      // Priority 1: primary position matches
+      // Priority 1: primary position matches (tagged players only)
       let pick = unplaced
         .filter(p => p.positions && p.positions.length > 0 && positionMatchesRole(p.positions[0], role))
         .sort((a, b) => b.skillRating - a.skillRating)[0];
 
-      // Priority 2: secondary/tertiary matches
+      // Priority 2: secondary/tertiary matches (tagged players only)
       if (!pick) {
         pick = unplaced
           .filter(p => p.positions && p.positions.length > 1 && p.positions.slice(1).some(pos => positionMatchesRole(pos, role)))
           .sort((a, b) => b.skillRating - a.skillRating)[0];
       }
 
-      // Priority 3: any-position (no positions set)
+      // Priority 3: out-of-position tagged players (not wildcards)
       if (!pick) {
-        pick = unplaced
-          .filter(p => !p.positions || p.positions.length === 0)
+        pick = [...unplaced]
+          .filter(p => p.positions && p.positions.length > 0)
           .sort((a, b) => b.skillRating - a.skillRating)[0];
-      }
-
-      // Priority 4: highest-skill unplaced (out of position)
-      if (!pick) {
-        pick = [...unplaced].sort((a, b) => b.skillRating - a.skillRating)[0];
       }
 
       if (pick) {
@@ -77,6 +78,75 @@ function buildGreedyState(team: Team, formationName: string): { slots: Array<{ p
         slots[si].isOutOfPosition = !isInPosition(pick, role) && !(!pick.positions || pick.positions.length === 0);
         unplaced.splice(unplaced.indexOf(pick), 1);
       }
+    }
+  }
+
+  // Pass 2: distribute wildcards (no positions set) with fair skill distribution
+  // Slot priority for wildcards: ATT first (fun/impactful), then MID, DEF, GK last
+  const wildcardSlotPriority: LineRole[] = ['ATT', 'MID', 'DEF', 'GK'];
+  const emptySlotsByRole: Array<{ si: number; role: LineRole }> = [];
+  for (const role of wildcardSlotPriority) {
+    formation.slots.forEach((slot, i) => {
+      if (slot.role === role && slots[i].playerId === null) {
+        emptySlotsByRole.push({ si: i, role });
+      }
+    });
+  }
+
+  const wildcards = unplaced
+    .filter(p => !p.positions || p.positions.length === 0)
+    .sort((a, b) => b.skillRating - a.skillRating); // best skill first
+
+  // Assign best wildcard → ATT, next → MID, etc.
+  for (let wi = 0; wi < wildcards.length && wi < emptySlotsByRole.length; wi++) {
+    const { si, role: _role } = emptySlotsByRole[wi];
+    const pick = wildcards[wi];
+    slots[si].playerId = pick.id;
+    slots[si].isOutOfPosition = false; // wildcards are never "out of position"
+    unplaced.splice(unplaced.indexOf(pick), 1);
+  }
+
+  // Pass 3: any remaining unplaced (tagged, still no slot) → highest skill, out of position
+  for (const role of rolePriority) {
+    const roleSlotIndices = formation.slots
+      .map((slot, i) => ({ slot, i }))
+      .filter(({ slot }) => slot.role === role)
+      .map(({ i }) => i)
+      .filter(i => slots[i].playerId === null);
+
+    for (const si of roleSlotIndices) {
+      if (unplaced.length === 0) break;
+      const pick = [...unplaced].sort((a, b) => b.skillRating - a.skillRating)[0];
+      if (pick) {
+        slots[si].playerId = pick.id;
+        slots[si].isOutOfPosition = !isInPosition(pick, role) && !(!pick.positions || pick.positions.length === 0);
+        unplaced.splice(unplaced.indexOf(pick), 1);
+      }
+    }
+  }
+
+  // Apply rotation offset: rotate on-pitch slot assignments cyclically
+  if (rotationOffset !== 0) {
+    const filledSlotIndices = slots
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => s.playerId !== null)
+      .map(({ i }) => i);
+    const n = filledSlotIndices.length;
+    if (n > 1) {
+      const offset = ((rotationOffset % n) + n) % n;
+      const playerIds = filledSlotIndices.map(i => slots[i].playerId);
+      const rotated = [...playerIds.slice(offset), ...playerIds.slice(0, offset)];
+      filledSlotIndices.forEach((si, wi) => {
+        const pid = rotated[wi];
+        slots[si].playerId = pid;
+        if (pid) {
+          const player = team.players.find(p => p.id === pid);
+          const role = formation.slots[si].role;
+          slots[si].isOutOfPosition = player
+            ? computeIsOutOfPosition(player, role)
+            : false;
+        }
+      });
     }
   }
 
@@ -114,8 +184,8 @@ function benchId(teamIdx: number, playerIdx: number) { return `bench-${teamIdx}-
 interface SlotAssignment { playerId: string | null; isOutOfPosition: boolean; }
 interface TeamPitchState { formation: string; slots: SlotAssignment[]; bench: string[]; }
 
-function buildInitialState(team: Team, formationName: string): TeamPitchState {
-  const { slots, bench } = buildGreedyState(team, formationName);
+function buildInitialState(team: Team, formationName: string, rotationOffset: number = 0): TeamPitchState {
+  const { slots, bench } = buildGreedyState(team, formationName, rotationOffset);
   return { formation: formationName, slots, bench };
 }
 
@@ -144,11 +214,13 @@ interface MarkerProps {
   isDimmed?: boolean;
   isDragActive?: boolean;
   hoveredPlayerId?: string | null;
+  hasBibs?: boolean;
 }
 
 const PlayerMarker: React.FC<MarkerProps> = ({
   id, player, cx, cy, r, teamIdx, isOutOfPosition,
   onHover, onSpotlight, isSpotlit, isDimmed, isDragActive, hoveredPlayerId,
+  hasBibs,
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
   const initials = getInitials(player.name);
@@ -175,8 +247,18 @@ const PlayerMarker: React.FC<MarkerProps> = ({
         <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke="#1A1A1A"
           strokeWidth={1.5} strokeDasharray="4 3" opacity={0.5} filter="url(#marker)" />
       )}
-      <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke}
-        strokeWidth={2.5} strokeLinecap="round" filter="url(#marker)" opacity={0.92} />
+      {/* Bibs sash — yellow rect at bottom of marker */}
+      {hasBibs && (
+        <rect
+          x={cx - r} y={cy + r * 0.35}
+          width={r * 2} height={r * 0.65}
+          fill="#FACC15" opacity={0.8}
+          filter="url(#marker)"
+          clipPath={`circle(${r}px at 0px ${-(r * 0.35)}px)`}
+        />
+      )}
+      <circle cx={cx} cy={cy} r={r} fill={fill} stroke={hasBibs ? '#FACC15' : stroke}
+        strokeWidth={hasBibs ? 3 : 2.5} strokeLinecap="round" filter="url(#marker)" opacity={0.92} />
       {/* Initials */}
       <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
         fontFamily="'Kalam', cursive" fontWeight="700" fontSize={r * 0.62} fill={tcolor}>
@@ -580,9 +662,11 @@ function previewTotals(
 interface PitchViewProps {
   teams: Team[];
   onTeamsChange: (teams: Team[]) => void;
+  bibsTeam?: 0 | 1 | null;
+  match?: Match;
 }
 
-export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) => {
+export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange, bibsTeam = null, match }) => {
   const firstTwo = teams.slice(0, 2);
 
   const [pitchStates, setPitchStates] = useState<TeamPitchState[]>(() =>
@@ -595,6 +679,13 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
   const [hoveredPlayerId, setHoveredPlayerId] = useState<string | null>(null);
   const [spotlightId, setSpotlightId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [rotationOffsets, setRotationOffsets] = useState<number[]>(() => firstTwo.map(() => 0));
+  // Track whether the hint label has been dismissed (first click hides it)
+  const [hintDismissed, setHintDismissed] = useState<boolean[]>(() => firstTwo.map(() => false));
+  // Ref for tap-and-hold reset timer per team
+  const holdTimers = useRef<Array<ReturnType<typeof setTimeout> | null>>(firstTwo.map(() => null));
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [qrData, setQrData] = useState<string | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -716,7 +807,49 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
     ];
     const allPlayers = allPlayerIds.map(id => playerById.get(id)).filter(Boolean) as Player[];
     const virtualTeam = { ...team, players: allPlayers };
-    const updated = buildInitialState(virtualTeam, newFormation);
+    // Reset rotation offset when formation changes
+    const newOffsets = [...rotationOffsets];
+    newOffsets[teamIdx] = 0;
+    setRotationOffsets(newOffsets);
+    const updated = buildInitialState(virtualTeam, newFormation, 0);
+    setPitchStates(prev => prev.map((s, i) => (i === teamIdx ? updated : s)));
+  }
+
+  function handleRotate(teamIdx: number) {
+    const newOffsets = [...rotationOffsets];
+    newOffsets[teamIdx] = newOffsets[teamIdx] + 1;
+    setRotationOffsets(newOffsets);
+
+    const newHints = [...hintDismissed];
+    newHints[teamIdx] = true;
+    setHintDismissed(newHints);
+
+    const team = firstTwo[teamIdx];
+    const state = pitchStates[teamIdx];
+    const allPlayerIds = [
+      ...state.slots.map(s => s.playerId).filter(Boolean) as string[],
+      ...state.bench,
+    ];
+    const allPlayers = allPlayerIds.map(id => playerById.get(id)).filter(Boolean) as Player[];
+    const virtualTeam = { ...team, players: allPlayers };
+    const updated = buildInitialState(virtualTeam, state.formation, newOffsets[teamIdx]);
+    setPitchStates(prev => prev.map((s, i) => (i === teamIdx ? updated : s)));
+  }
+
+  function handleRotateReset(teamIdx: number) {
+    const newOffsets = [...rotationOffsets];
+    newOffsets[teamIdx] = 0;
+    setRotationOffsets(newOffsets);
+
+    const team = firstTwo[teamIdx];
+    const state = pitchStates[teamIdx];
+    const allPlayerIds = [
+      ...state.slots.map(s => s.playerId).filter(Boolean) as string[],
+      ...state.bench,
+    ];
+    const allPlayers = allPlayerIds.map(id => playerById.get(id)).filter(Boolean) as Player[];
+    const virtualTeam = { ...team, players: allPlayers };
+    const updated = buildInitialState(virtualTeam, state.formation, 0);
     setPitchStates(prev => prev.map((s, i) => (i === teamIdx ? updated : s)));
   }
 
@@ -757,6 +890,7 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
                 isDimmed={spotlightId !== null && spotlightId !== player.id}
                 isDragActive={activeId !== null}
                 hoveredPlayerId={hoveredPlayerId}
+                hasBibs={bibsTeam === teamIdx}
               />
             </motion.g>
           )}
@@ -805,6 +939,7 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
                   isDimmed={spotlightId !== null && spotlightId !== player.id}
                   isDragActive={activeId !== null}
                   hoveredPlayerId={hoveredPlayerId}
+                  hasBibs={bibsTeam === teamIdx}
                 />
               </g>
             );
@@ -815,6 +950,119 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
   }
 
   const formationLabel = firstTwo.map((t, i) => `${pitchStates[i]?.formation ?? ''}`).join(' vs ');
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const buildSvgAndPng = async (): Promise<{ svgBlob: Blob; pngBlob: Blob | null }> => {
+    const svgEl = svgRef.current;
+    const serializer = new XMLSerializer();
+    const svgStr = svgEl ? serializer.serializeToString(svgEl) : '';
+    const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+
+    if (!svgEl) return { svgBlob, pngBlob: null };
+
+    try {
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = VW * 2;
+      canvas.height = VH * 2;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('no ctx');
+      ctx.scale(2, 2);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      return await new Promise<{ svgBlob: Blob; pngBlob: Blob | null }>(resolve => {
+        canvas.toBlob(blob => resolve({ svgBlob, pngBlob: blob }), 'image/png');
+      });
+    } catch {
+      return { svgBlob, pngBlob: null };
+    }
+  };
+
+  const handleCopyImage = async () => {
+    setShareMenuOpen(false);
+    const { svgBlob, pngBlob } = await buildSvgAndPng();
+    if (pngBlob) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+        toast.success('copied tactics →');
+        return;
+      } catch { /* fall through */ }
+    }
+    // fallback SVG download
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(svgBlob);
+    a.download = 'tactics.svg';
+    a.click();
+    toast.success('saved tactics.svg');
+  };
+
+  const handleDownloadImage = async () => {
+    setShareMenuOpen(false);
+    const { svgBlob, pngBlob } = await buildSvgAndPng();
+    if (pngBlob) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(pngBlob);
+      a.download = 'match-tactics.png';
+      a.click();
+      toast.success('saved tactics.png');
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(svgBlob);
+      a.download = 'tactics.svg';
+      a.click();
+      toast.success('saved tactics.svg');
+    }
+  };
+
+  const handleShareQr = () => {
+    setShareMenuOpen(false);
+    if (match?.id) {
+      setQrData(buildMatchUrl(match.id));
+    } else {
+      // Offline payload — build a synthetic match from current teams
+      const offlineMatch: Match = {
+        id: 'offline-' + Date.now(),
+        name: formationLabel,
+        teams: firstTwo,
+        date: new Date(),
+        isPublic: false,
+        bibsTeam: bibsTeam,
+      };
+      setQrData(encodeMatchPayload(offlineMatch));
+    }
+  };
+
+  const handleShareNative = async () => {
+    setShareMenuOpen(false);
+    const { pngBlob } = await buildSvgAndPng();
+    if (!pngBlob) {
+      toast.error('could not render image');
+      return;
+    }
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toLowerCase();
+    const caption = `tactics · ${formationLabel.toLowerCase()} · ${dateStr}`;
+    const matchUrl = match?.id ? buildMatchUrl(match.id) : undefined;
+    const result = await shareNative({
+      pngBlob,
+      filename: 'match-tactics.png',
+      title: 'match tactics',
+      text: caption,
+      url: matchUrl,
+    });
+    if (result === 'wa-fallback') {
+      toast.success('opened whatsapp ↗');
+    } else if (result === 'unsupported') {
+      toast('share not supported — try copy image', { icon: '↓' });
+    }
+    // 'shared' — OS share sheet handles feedback
+  };
 
   // Squad list for legend
   const teamAPlayers = firstTwo[0] ? pitchStates[0]?.slots
@@ -874,29 +1122,200 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
                 </div>
               );
             })()}
-            <FormationSelector
-              playerCount={team.players.length}
-              current={pitchStates[ti]?.formation}
-              teamIdx={ti}
-              onChange={f => handleFormationChange(ti, f)}
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <FormationSelector
+                playerCount={team.players.length}
+                current={pitchStates[ti]?.formation}
+                teamIdx={ti}
+                onChange={f => handleFormationChange(ti, f)}
+              />
+              {/* Rotate button */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <button
+                  title="rotate everyone one spot"
+                  onMouseDown={() => {
+                    holdTimers.current[ti] = setTimeout(() => {
+                      handleRotateReset(ti);
+                      holdTimers.current[ti] = null;
+                    }, 600);
+                  }}
+                  onMouseUp={() => {
+                    if (holdTimers.current[ti] !== null) {
+                      clearTimeout(holdTimers.current[ti]!);
+                      holdTimers.current[ti] = null;
+                      handleRotate(ti);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (holdTimers.current[ti] !== null) {
+                      clearTimeout(holdTimers.current[ti]!);
+                      holdTimers.current[ti] = null;
+                    }
+                  }}
+                  style={{
+                    fontFamily: "'Kalam', cursive",
+                    fontSize: '0.8rem',
+                    border: `1.5px solid ${TEAM_STROKE[ti]}`,
+                    backgroundColor: 'transparent',
+                    color: TEAM_STROKE[ti],
+                    borderRadius: 2,
+                    padding: '0 6px',
+                    height: 22,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    lineHeight: 1,
+                    userSelect: 'none',
+                  }}
+                >
+                  <span>↻</span>
+                  {rotationOffsets[ti] > 0 && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); handleRotateReset(ti); }}
+                      title="click to reset rotation"
+                      style={{
+                        fontFamily: "'Caveat', cursive",
+                        fontSize: '0.72rem',
+                        color: 'var(--color-ink-soft)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {rotationOffsets[ti]}
+                    </span>
+                  )}
+                </button>
+                {!hintDismissed[ti] && (
+                  <span
+                    style={{
+                      fontFamily: "'Caveat', cursive",
+                      fontSize: '0.65rem',
+                      color: 'var(--color-ink-soft)',
+                      whiteSpace: 'nowrap',
+                      opacity: 0.7,
+                    }}
+                  >
+                    rotate everyone one spot
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Pitch title */}
-      <div className="mb-2">
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-ink)', textTransform: 'lowercase' }}>
-          today's match
-        </span>
-        <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.85rem', color: 'var(--color-ink-soft)', marginLeft: '0.6rem' }}>
-          {formationLabel.toLowerCase()}
-        </span>
+      {/* Pitch title + share */}
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-ink)', textTransform: 'lowercase' }}>
+            today's match
+          </span>
+          <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.85rem', color: 'var(--color-ink-soft)', marginLeft: '0.6rem' }}>
+            {formationLabel.toLowerCase()}
+          </span>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShareMenuOpen(prev => !prev)}
+            style={{
+              fontFamily: 'var(--font-hand)',
+              fontSize: '0.8rem',
+              border: '1.5px solid var(--color-line)',
+              backgroundColor: 'transparent',
+              color: 'var(--color-ink-soft)',
+              padding: '0.15rem 0.5rem',
+              cursor: 'pointer',
+              borderRadius: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-ink)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-ink-soft)'; }}
+            title="share options"
+          >
+            share ↓
+          </button>
+          <AnimatePresence>
+            {shareMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.12 }}
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: 4,
+                  backgroundColor: '#FBFAF2',
+                  border: '1.5px solid #1A1A1A',
+                  boxShadow: '2px 2px 0 rgba(0,0,0,0.1)',
+                  zIndex: 100,
+                  minWidth: 130,
+                }}
+              >
+                {/* Primary action: native share */}
+                <button
+                  onClick={handleShareNative}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontFamily: "'Kalam', cursive",
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    color: '#FBFAF2',
+                    backgroundColor: '#1A1A1A',
+                    border: 'none',
+                    borderBottom: '1.5px solid #1A1A1A',
+                    padding: '0.4rem 0.65rem',
+                    cursor: 'pointer',
+                    letterSpacing: '0.01em',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#333')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1A1A1A')}
+                >
+                  share →
+                </button>
+                {/* Secondary options */}
+                {[
+                  { label: 'copy image', action: handleCopyImage },
+                  { label: 'download image', action: handleDownloadImage },
+                  { label: 'share via qr', action: handleShareQr },
+                ].map(({ label, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      fontFamily: "'Caveat', cursive",
+                      fontSize: '0.85rem',
+                      color: '#1A1A1A',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: '1px solid #D8D9D0',
+                      padding: '0.35rem 0.65rem',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F2F4F0')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* SVG pitch */}
       <div style={{ border: '1.5px solid var(--color-line)', overflow: 'hidden' }}>
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${VW} ${VH}`}
           style={{ width: '100%', height: 'auto', display: 'block', backgroundColor: 'var(--color-pitch)' }}
           onClick={() => setSpotlightId(null)}
@@ -904,6 +1323,17 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
           <MarkerDefs />
           <PitchMarkings />
           <TacticalAnnotations teams={firstTwo} pitchStates={pitchStates} />
+          {/* Export overlay: formation + date */}
+          <text
+            x={VW / 2} y={VH - M + 12}
+            textAnchor="middle"
+            fontFamily="'Caveat', cursive"
+            fontSize={11}
+            fill="#1A1A1A"
+            opacity={0.4}
+          >
+            {formationLabel.toLowerCase()} · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toLowerCase()}
+          </text>
           {/* Team name labels on pitch */}
           {firstTwo.map((team, ti) => {
             const labelX = ti === 0
@@ -1052,6 +1482,18 @@ export const PitchView: React.FC<PitchViewProps> = ({ teams, onTeamsChange }) =>
           </div>
         </div>
       )}
+
+      {/* QR Modal */}
+      <AnimatePresence>
+        {qrData && (
+          <QrModal
+            key="pitch-qr"
+            data={qrData}
+            title={match?.id ? 'scan to view match' : 'scan to import teams'}
+            onClose={() => setQrData(null)}
+          />
+        )}
+      </AnimatePresence>
     </DndContext>
   );
 };

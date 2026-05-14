@@ -22,6 +22,7 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTeamEditor, setShowTeamEditor] = useState(false);
   const [teamEditorInitialMode, setTeamEditorInitialMode] = useState<'list' | 'pitch'>('list');
+  const [bibsTeam, setBibsTeam] = useState<0 | 1 | null>(null);
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayers(prev =>
@@ -242,6 +243,33 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
                 ))}
               </div>
 
+              {/* Bibs toggle */}
+              <div className="flex items-center gap-2 mb-4">
+                <span style={{ fontFamily: 'var(--font-hand)', fontSize: '0.85rem', color: 'var(--color-ink-soft)' }}>bibs:</span>
+                {([null, 0, 1] as Array<0 | 1 | null>).map((val) => {
+                  const label = val === null ? 'none' : val === 0 ? generatedTeams[0]?.name?.toLowerCase() || 'team a' : generatedTeams[1]?.name?.toLowerCase() || 'team b';
+                  const isActive = bibsTeam === val;
+                  return (
+                    <button
+                      key={String(val)}
+                      onClick={() => setBibsTeam(val)}
+                      style={{
+                        fontFamily: 'var(--font-hand)',
+                        fontSize: '0.78rem',
+                        padding: '0.1rem 0.5rem',
+                        border: `1.5px solid ${isActive ? '#FACC15' : 'var(--color-line)'}`,
+                        backgroundColor: isActive ? '#FACC15' : 'transparent',
+                        color: isActive ? '#92400E' : 'var(--color-ink-soft)',
+                        cursor: 'pointer',
+                        borderRadius: 0,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="flex justify-start">
                 <button
                   onClick={() => onCreateMatch(generatedTeams)}
@@ -263,6 +291,8 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
             onTeamsUpdate={handleTeamsUpdate}
             onClose={() => setShowTeamEditor(false)}
             initialViewMode={teamEditorInitialMode}
+            bibsTeam={bibsTeam}
+            onBibsChange={setBibsTeam}
           />
         )}
       </AnimatePresence>
