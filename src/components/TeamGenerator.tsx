@@ -29,6 +29,16 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectedPlayers.length === players.length) {
+      // Deselect all if all are selected
+      setSelectedPlayers([]);
+    } else {
+      // Select all players
+      setSelectedPlayers(players.map(p => p.id));
+    }
+  };
+
   const handleGenerateTeams = async () => {
     if (selectedPlayers.length < numTeams) return;
 
@@ -112,6 +122,14 @@ export const TeamGenerator: React.FC<TeamGeneratorProps> = ({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSelectAll}
+                className="px-4 py-2 border-2 border-purple-500 text-purple-600 rounded-lg font-medium hover:bg-purple-50 transition-all"
+              >
+                {selectedPlayers.length === players.length ? 'Deselect All' : 'Select All'}
+              </motion.button>
               <label className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-700">Teams:</span>
                 <select
